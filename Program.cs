@@ -107,6 +107,8 @@
 // }
 // */
 
+
+
 using ImageToPdfApp;
 
 Console.WriteLine("=== High-Tier Image to PDF Converter ===");
@@ -115,13 +117,64 @@ try
 {
     List<ImageInput> images =
     [
-        new("c:/Users/GERMANTATE/Downloads/ChatGPT Image May 23, 2026, 01_42_44 PM.png"),
-        new("2.png"),
+        new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
+// --- Batch 1 (1-18) ---
+    new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg"),
+    new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.webp"),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.webp", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.webp"),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.png"),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.png", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.png"),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.jpg"),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.jpg", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.jpg"),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.UpsideDown180),
+    
+    // --- Batch 2 Duplicates (19-36) ---
+    new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.webp"),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.png"),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.jpg"),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.jpg", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.jpg"),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.jpg", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.Left270),
+    
+    // --- Batch 3 Fillers (37-50) ---
+    new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
+    new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.webp"),
+    new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.UpsideDown180),
+    new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Left270),
+    new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
+    new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.Right90),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.png"),
+    new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.UpsideDown180)
 
-        // Examples:
-        new("c:/Users/GERMANTATE/Downloads/ChatGPT Image May 23, 2026, 01_42_44 PM.png",RotationSteps.UpsideDown180),
-        new("C:/Users/GERMANTATE/Downloads/image (1).ico", RotationSteps.Left270),
-        new("C:/Users/GERMANTATE/Downloads/image (1).ico", RotationSteps.UpsideDown180),
+
     ];
 
     string targetDirectory =
@@ -137,7 +190,7 @@ try
         orientation: OrientationOption.Auto,
         margin: MarginOption.None,
         imageFit: ImageFitOption.FitKeepRatio,
-        quality: 100
+        quality: 99
     );
 
     Console.WriteLine(
