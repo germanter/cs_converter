@@ -1,4 +1,4 @@
-﻿// using System;
+﻿// using System;  //// FIRST IMAGE TO IMAGE
 // using System.IO;
 // using System.Threading;
 // using System.Threading.Tasks;
@@ -87,116 +87,219 @@
 // }
 
 
-// /* ===================================================================================
-// 💡 NOTE FOR FUTURE AVALONIA DESKTOP GUI TRANSITION:
-// When you are ready to switch from this CLI test tool to a full Avalonia Desktop App,
-// comment out everything above this box, and uncomment the setup sequence below.
-// ===================================================================================
+/* ===================================================================================
+💡 NOTE FOR FUTURE AVALONIA DESKTOP GUI TRANSITION:
+When you are ready to switch from this CLI test tool to a full Avalonia Desktop App,
+comment out everything above this box, and uncomment the setup sequence below.
+===================================================================================
 
-// using Avalonia;
+using Avalonia;
 
-// class Program
+class Program
+{
+    public static void Main(string[] args) =>
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+
+    public static AppBuilder BuildAvaloniaApp() =>
+        AppBuilder.Configure<ui.App>()
+            .UsePlatformDetect()
+            .LogToTrace();
+}
+*/
+
+
+
+
+
+
+// SECOND IMAGE TO PDF
+
+// using ImageToPdfApp;
+
+// Console.WriteLine("=== High-Tier Image to PDF Converter ===");
+
+// try
 // {
-//     public static void Main(string[] args) =>
-//         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+//     List<ImageInput> images =
+//     [
+//         new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
+// // --- Batch 1 (1-18) ---
+//     new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg"),
+//     new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.webp"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.webp", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.webp"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.png"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.png", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.png"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.jpg"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.jpg", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.jpg"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.UpsideDown180),
+    
+//     // --- Batch 2 Duplicates (19-36) ---
+//     new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.webp"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.png"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.jpg"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.jpg", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.jpg"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.jpg", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.Left270),
+    
+//     // --- Batch 3 Fillers (37-50) ---
+//     new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
+//     new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.webp"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.UpsideDown180),
+//     new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Left270),
+//     new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.Right90),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.png"),
+//     new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.UpsideDown180)
 
-//     public static AppBuilder BuildAvaloniaApp() =>
-//         AppBuilder.Configure<ui.App>()
-//             .UsePlatformDetect()
-//             .LogToTrace();
+
+//     ];
+
+//     string targetDirectory =
+//         Path.Combine(Directory.GetCurrentDirectory(), "Output");
+
+//     Console.WriteLine("Processing images...");
+
+//     string savedPdfPath = ImageToPdfEngine.ConvertToPdf(
+//         images: images,
+//         saveDirectory: targetDirectory,
+//         filename: "FinalPresentation",
+//         pageSize: PageSizeOption.FitToImage,
+//         orientation: OrientationOption.Auto,
+//         margin: MarginOption.None,
+//         imageFit: ImageFitOption.FitKeepRatio,
+//         quality: 99
+//     );
+
+//     Console.WriteLine(
+//         $"\n[SUCCESS] PDF exceptionally constructed and saved to:\n-> {savedPdfPath}");
 // }
-// */
+// catch (Exception ex)
+// {
+//     Console.WriteLine($"\n[FATAL ERROR]: {ex}");
+// }
 
 
 
-using ImageToPdfApp;
 
-Console.WriteLine("=== High-Tier Image to PDF Converter ===");
+
+
+
+
+// THIRD PDF TO IMAGE
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using PdfEngine; // Ensure this matches the namespace where PdfToImageConverter lives
+
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("=================================================");
+Console.WriteLine("   🚀 HIGH-TIER PDF TO IMAGE EXTRACTOR ENGINE");
+Console.WriteLine("=================================================\n");
+Console.ResetColor();
+
+// 1. Define Paths (Swap this out with a real heavy PDF on your machine)
+string testPdfPath = "C:/Users/GERMANTATE/Downloads/Untitled document (4).pdf"; 
+string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "PdfExtracts");
 
 try
 {
-    List<ImageInput> images =
-    [
-        new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
-// --- Batch 1 (1-18) ---
-    new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg"),
-    new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.webp"),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.webp", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.webp"),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.png"),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.png", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.png"),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.jpg"),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.jpg", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.jpg"),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.UpsideDown180),
-    
-    // --- Batch 2 Duplicates (19-36) ---
-    new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.webp"),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.png"),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.jpg"),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.jpg", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.jpg"),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.jpg", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.Left270),
-    
-    // --- Batch 3 Fillers (37-50) ---
-    new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
-    new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.webp"),
-    new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.UpsideDown180),
-    new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Left270),
-    new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
-    new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.Right90),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.png"),
-    new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.UpsideDown180)
+    // --- QUICK SANITY CHECK FOR TESTING ---
+    if (!File.Exists(testPdfPath))
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"[WARNING] Test PDF not found at: {testPdfPath}");
+        Console.WriteLine("Please change the 'testPdfPath' variable to point to a real PDF on your computer.");
+        Console.ResetColor();
+        return;
+    }
 
 
-    ];
 
-    string targetDirectory =
-        Path.Combine(Directory.GetCurrentDirectory(), "Output");
+    Console.WriteLine($"Target PDF: {Path.GetFileName(testPdfPath)}");
+    Console.WriteLine($"Output Dir: {baseOutputDirectory}");
+    Console.WriteLine("Status:     Shredding PDF to RAM and flushing to disk...\n");
 
-    Console.WriteLine("Processing images...");
+    // 2. Start Timer to track Beast Mode Speed
+    Stopwatch sw = Stopwatch.StartNew();
 
-    string savedPdfPath = ImageToPdfEngine.ConvertToPdf(
-        images: images,
-        saveDirectory: targetDirectory,
-        filename: "FinalPresentation",
-        pageSize: PageSizeOption.FitToImage,
-        orientation: OrientationOption.Auto,
-        margin: MarginOption.None,
-        imageFit: ImageFitOption.FitKeepRatio,
-        quality: 99
+    // 3. EXECUTE THE PURE ENGINE
+    // We set DPI to 150 for the sweet spot of crispness and manageable file size.
+    var savedImages = PdfToImageConverter.ConvertPdfToImages(
+        pdfPath: testPdfPath, 
+        outputPath: baseOutputDirectory, 
+        dpi: 200,
+        quality : 100
     );
 
-    Console.WriteLine(
-        $"\n[SUCCESS] PDF exceptionally constructed and saved to:\n-> {savedPdfPath}");
+    sw.Stop();
+
+    // 4. Output Results
+    Console.WriteLine("✨ --- EXTRACTION COMPLETE --- ✨\n");
+    
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine($"✅ Successfully rasterized {savedImages.Count} pages in {sw.ElapsedMilliseconds} ms!");
+    Console.WriteLine($"⏱️ Average Speed: {sw.ElapsedMilliseconds / Math.Max(1, savedImages.Count)} ms per page\n");
+    Console.ResetColor();
+
+    // Print the first 5 and last 5 so we don't flood the console if it's an 800 page document
+    if (savedImages.Count <= 10)
+    {
+        foreach (var path in savedImages)
+        {
+            Console.WriteLine($"  [SAVED] -> {path}");
+        }
+    }
+    else
+    {
+        foreach (var path in savedImages.Take(5))
+        {
+            Console.WriteLine($"  [SAVED] -> {path}");
+        }
+        Console.WriteLine("  ... [snip] ...");
+        foreach (var path in savedImages.Skip(savedImages.Count - 5))
+        {
+            Console.WriteLine($"  [SAVED] -> {path}");
+        }
+    }
+
+    // Let the user know exactly where the safe folder was generated
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine($"\n📁 Final Destination Folder: {Path.GetDirectoryName(savedImages.First())}");
+    Console.ResetColor();
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"\n[FATAL ERROR]: {ex}");
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+    Console.WriteLine(ex.StackTrace);
+    Console.ResetColor();
 }
