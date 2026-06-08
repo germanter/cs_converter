@@ -213,87 +213,204 @@ class Program
 
 
 
-// THIRD PDF TO IMAGE
+// // THIRD PDF TO IMAGE
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using PdfEngine; // Ensure this matches the namespace where PdfToImageConverter lives
+
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("   🚀 HIGH-TIER PDF TO IMAGE EXTRACTOR ENGINE");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
+
+// // 1. Define Paths (Swap this out with a real heavy PDF on your machine)
+// string testPdfPath = "C:/Users/GERMANTATE/Downloads/Untitled document (4).pdf"; 
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "PdfExtracts");
+
+// try
+// {
+//     // --- QUICK SANITY CHECK FOR TESTING ---
+//     if (!File.Exists(testPdfPath))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine($"[WARNING] Test PDF not found at: {testPdfPath}");
+//         Console.WriteLine("Please change the 'testPdfPath' variable to point to a real PDF on your computer.");
+//         Console.ResetColor();
+//         return;
+//     }
+
+
+
+//     Console.WriteLine($"Target PDF: {Path.GetFileName(testPdfPath)}");
+//     Console.WriteLine($"Output Dir: {baseOutputDirectory}");
+//     Console.WriteLine("Status:     Shredding PDF to RAM and flushing to disk...\n");
+
+//     // 2. Start Timer to track Beast Mode Speed
+//     Stopwatch sw = Stopwatch.StartNew();
+
+//     // 3. EXECUTE THE PURE ENGINE
+//     // We set DPI to 150 for the sweet spot of crispness and manageable file size.
+//     var savedImages = PdfToImageConverter.ConvertPdfToImages(
+//         pdfPath: testPdfPath, 
+//         outputPath: baseOutputDirectory, 
+//         dpi: 200,
+//         quality : 100
+//     );
+
+//     sw.Stop();
+
+//     // 4. Output Results
+//     Console.WriteLine("✨ --- EXTRACTION COMPLETE --- ✨\n");
+    
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully rasterized {savedImages.Count} pages in {sw.ElapsedMilliseconds} ms!");
+//     Console.WriteLine($"⏱️ Average Speed: {sw.ElapsedMilliseconds / Math.Max(1, savedImages.Count)} ms per page\n");
+//     Console.ResetColor();
+
+//     // Print the first 5 and last 5 so we don't flood the console if it's an 800 page document
+//     if (savedImages.Count <= 10)
+//     {
+//         foreach (var path in savedImages)
+//         {
+//             Console.WriteLine($"  [SAVED] -> {path}");
+//         }
+//     }
+//     else
+//     {
+//         foreach (var path in savedImages.Take(5))
+//         {
+//             Console.WriteLine($"  [SAVED] -> {path}");
+//         }
+//         Console.WriteLine("  ... [snip] ...");
+//         foreach (var path in savedImages.Skip(savedImages.Count - 5))
+//         {
+//             Console.WriteLine($"  [SAVED] -> {path}");
+//         }
+//     }
+
+//     // Let the user know exactly where the safe folder was generated
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"\n📁 Final Destination Folder: {Path.GetDirectoryName(savedImages.First())}");
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.ResetColor();
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FORUTH PDF MERGER
+
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using PdfEngine; // Ensure this matches the namespace where PdfToImageConverter lives
+using PdfUtilities; // Ensure this matches the namespace of your PdfMerger class
 
 Console.ForegroundColor = ConsoleColor.Cyan;
 Console.WriteLine("=================================================");
-Console.WriteLine("   🚀 HIGH-TIER PDF TO IMAGE EXTRACTOR ENGINE");
+Console.WriteLine("   🚀 HIGH-TIER PDF STRUCTURAL MERGER ENGINE");
 Console.WriteLine("=================================================\n");
 Console.ResetColor();
 
-// 1. Define Paths (Swap this out with a real heavy PDF on your machine)
-string testPdfPath = "C:/Users/GERMANTATE/Downloads/Untitled document (4).pdf"; 
-string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "PdfExtracts");
+// 1. Define Paths (Swap these out with real PDFs on your machine)
+string[] testPdfPaths = new string[] 
+{
+"C:/Users/GERMANTATE/Downloads/china.pdf",
+"C:/Users/GERMANTATE/Downloads/japan.pdf",
+"C:/Users/GERMANTATE/Downloads/ArtOfWar.pdf",
+"C:/Users/GERMANTATE/Downloads/canva1.pdf",
+"C:/Users/GERMANTATE/Downloads/canva2.pdf"
+}; 
+
+string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+string desiredFileName = "Master_Merged_Document.pdf";
 
 try
 {
     // --- QUICK SANITY CHECK FOR TESTING ---
-    if (!File.Exists(testPdfPath))
+    var missingFiles = testPdfPaths.Where(path => !File.Exists(path)).ToList();
+    if (missingFiles.Any())
     {
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"[WARNING] Test PDF not found at: {testPdfPath}");
-        Console.WriteLine("Please change the 'testPdfPath' variable to point to a real PDF on your computer.");
+        Console.WriteLine("[WARNING] The following source PDFs were not found:");
+        foreach (var missing in missingFiles)
+        {
+            Console.WriteLine($" -> {missing}");
+        }
+        Console.WriteLine("\nPlease update the 'testPdfPaths' array to point to real PDFs on your computer.");
         Console.ResetColor();
         return;
     }
 
-
-
-    Console.WriteLine($"Target PDF: {Path.GetFileName(testPdfPath)}");
-    Console.WriteLine($"Output Dir: {baseOutputDirectory}");
-    Console.WriteLine("Status:     Shredding PDF to RAM and flushing to disk...\n");
+    Console.WriteLine($"Merging {testPdfPaths.Length} PDF files...");
+    Console.WriteLine($"Target Dir: {baseOutputDirectory}");
+    Console.WriteLine($"Target Name:{desiredFileName}");
+    Console.WriteLine("Status:     Executing binary-structural merge (Zero RAM Bloat)...\n");
 
     // 2. Start Timer to track Beast Mode Speed
     Stopwatch sw = Stopwatch.StartNew();
 
     // 3. EXECUTE THE PURE ENGINE
-    // We set DPI to 150 for the sweet spot of crispness and manageable file size.
-    var savedImages = PdfToImageConverter.ConvertPdfToImages(
-        pdfPath: testPdfPath, 
-        outputPath: baseOutputDirectory, 
-        dpi: 200,
-        quality : 100
+    string finalSavedPath = PdfMerger.Merge(
+        pdfPaths: testPdfPaths, 
+        filePathToSave: baseOutputDirectory, 
+        newFileName: desiredFileName
     );
 
     sw.Stop();
 
     // 4. Output Results
-    Console.WriteLine("✨ --- EXTRACTION COMPLETE --- ✨\n");
+    Console.WriteLine("✨ --- MERGE COMPLETE --- ✨\n");
     
     Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine($"✅ Successfully rasterized {savedImages.Count} pages in {sw.ElapsedMilliseconds} ms!");
-    Console.WriteLine($"⏱️ Average Speed: {sw.ElapsedMilliseconds / Math.Max(1, savedImages.Count)} ms per page\n");
+    Console.WriteLine($"✅ Successfully bound {testPdfPaths.Length} documents structurally in {sw.ElapsedMilliseconds} ms!");
     Console.ResetColor();
 
-    // Print the first 5 and last 5 so we don't flood the console if it's an 800 page document
-    if (savedImages.Count <= 10)
+    // Print the inputs
+    Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+    foreach (var path in testPdfPaths)
     {
-        foreach (var path in savedImages)
-        {
-            Console.WriteLine($"  [SAVED] -> {path}");
-        }
-    }
-    else
-    {
-        foreach (var path in savedImages.Take(5))
-        {
-            Console.WriteLine($"  [SAVED] -> {path}");
-        }
-        Console.WriteLine("  ... [snip] ...");
-        foreach (var path in savedImages.Skip(savedImages.Count - 5))
-        {
-            Console.WriteLine($"  [SAVED] -> {path}");
-        }
+        Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
     }
 
-    // Let the user know exactly where the safe folder was generated
+    // Let the user know exactly where the safe file was generated (shows if collision logic activated)
     Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"\n📁 Final Destination Folder: {Path.GetDirectoryName(savedImages.First())}");
+    Console.WriteLine($"\n[FINAL DESTINATION]:");
+    Console.WriteLine($"  OUT -> {finalSavedPath}");
+    
+    // Check if the auto-renamer had to step in
+    if (Path.GetFileName(finalSavedPath) != desiredFileName)
+    {
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.WriteLine($"  (Note: Filename was auto-adjusted to prevent overwriting an existing file)");
+    }
+    
     Console.ResetColor();
 }
 catch (Exception ex)
