@@ -439,127 +439,134 @@ class Program
 
 
 
-// FIFTH DOCX MERGER
-// using System;
-// using System.Diagnostics;
-// using System.IO;
-// using System.Linq;
-// using Orchestration; // Matches the namespace of your DocxMerger2Pdf class
+// FIFTH OFFICE MERGER
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
 
-// Console.ForegroundColor = ConsoleColor.Cyan;
-// Console.WriteLine("=================================================");
-// Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
-// Console.WriteLine("=================================================\n");
-// Console.ResetColor();
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine("=================================================");
+Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
+Console.WriteLine("=================================================\n");
+Console.ResetColor();
 
-// // 1. Define Paths (Swap these out with real files on your machine)
-// string[] testDocxPaths = new string[] 
-// {
-//     @"C:\Users\GERMANTATE\Downloads\hgf.pptx",
-//     @"C:\Users\GERMANTATE\Downloads\hgf.pptx"
-// }; 
+// 1. Define Paths & Modes
+string[] testFilePaths = new string[] 
+{
+    @"C:\Users\GERMANTATE\Downloads\part1.docx",
+    @"C:\Users\GERMANTATE\Downloads\part1.docx"
+}; 
 
-// // IMPORTANT: The orchestrator requires the absolute path to LibreOffice
-// string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
+// IMPORTANT: The orchestrator requires the absolute path to LibreOffice
+string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
 
-// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
-// // NOTE: The engine automatically enforces the .pdf extension. Provide the base name.
-// string desiredFileName = "Master_Merged_Document";
+string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
 
-// try
-// {
-//     // --- QUICK SANITY CHECK FOR TESTING ---
-//     bool abort = false;
+// NEW PARAMETER: 1 to Merge all files, 0 to convert and dump individually
+int mergeOption = 1; 
 
-//     if (!File.Exists(libreOfficePath))
-//     {
-//         Console.ForegroundColor = ConsoleColor.Red;
-//         Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
-//         Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
-//         abort = true;
-//     }
+try
+{
+    // --- QUICK SANITY CHECK FOR TESTING ---
+    bool abort = false;
 
-//     var missingFiles = testDocxPaths.Where(path => !File.Exists(path)).ToList();
-//     if (missingFiles.Any())
-//     {
-//         Console.ForegroundColor = ConsoleColor.Yellow;
-//         Console.WriteLine("[WARNING] The following source DOCX files were not found:");
-//         foreach (var missing in missingFiles)
-//         {
-//             Console.WriteLine($" -> {missing}");
-//         }
-//         Console.WriteLine("\nPlease update the 'testDocxPaths' array to point to real DOCX files on your computer.");
-//         abort = true;
-//     }
+    if (!File.Exists(libreOfficePath))
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
+        Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
+        abort = true;
+    }
 
-//     if (abort)
-//     {
-//         Console.ResetColor();
-//         return;
-//     }
+    var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
+    if (missingFiles.Any())
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("[WARNING] The following source files were not found:");
+        foreach (var missing in missingFiles)
+        {
+            Console.WriteLine($" -> {missing}");
+        }
+        Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
+        abort = true;
+    }
 
-//     // Ensure output directory exists before executing
-//     if (!Directory.Exists(baseOutputDirectory))
-//     {
-//         Directory.CreateDirectory(baseOutputDirectory);
-//     }
+    if (abort)
+    {
+        Console.ResetColor();
+        return;
+    }
 
-//     Console.WriteLine($"Converting & Merging {testDocxPaths.Length} DOCX files...");
-//     Console.WriteLine($"Gateway:     {libreOfficePath}");
-//     Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
-//     Console.WriteLine($"Target Name: {desiredFileName}.pdf");
-//     Console.WriteLine("Status:      Spinning up headless conversion sandboxes and structural PDF merger...\n");
+    // Ensure output directory exists before executing
+    if (!Directory.Exists(baseOutputDirectory))
+    {
+        Directory.CreateDirectory(baseOutputDirectory);
+    }
 
-//     // 2. Start Timer to track Beast Mode Speed
-//     Stopwatch sw = Stopwatch.StartNew();
+    Console.WriteLine($"Processing {testFilePaths.Length} files...");
+    Console.WriteLine($"Gateway:     {libreOfficePath}");
+    Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
+    Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
+    Console.WriteLine("Status:      Spinning up headless conversion sandboxes...\n");
 
-//     // 3. EXECUTE THE ORCHESTRATOR
-//     string finalSavedPath = OfficeBatchToPdfMerger.ConvertAndMerge(
-//         inputPaths: testDocxPaths, 
-//         newFileName: desiredFileName,
-//         filePathToSave: baseOutputDirectory, 
-//         libreOfficeExePath: libreOfficePath,
-//         mode : "pptx-pdf"
-//     );
+    // 2. Start Timer to track Beast Mode Speed
+    Stopwatch sw = Stopwatch.StartNew();
 
-//     sw.Stop();
+    // 3. EXECUTE THE ORCHESTRATOR (Now returns string[])
+    string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
+        inputPaths: testFilePaths, 
+        newFileName: desiredFileName,
+        filePathToSave: baseOutputDirectory, 
+        libreOfficeExePath: libreOfficePath,
+        mode: "docx-pdf",
+        merge: mergeOption // Passed here
+    );
 
-//     // 4. Output Results
-//     Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
+    sw.Stop();
+
+    // 4. Output Results
+    Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
     
-//     Console.ForegroundColor = ConsoleColor.Green;
-//     Console.WriteLine($"✅ Successfully converted and merged {testDocxPaths.Length} documents structurally in {sw.ElapsedMilliseconds} ms!");
-//     Console.ResetColor();
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
+    Console.ResetColor();
 
-//     // Print the inputs
-//     Console.WriteLine("\n[SOURCE DOCUMENTS]:");
-//     foreach (var path in testDocxPaths)
-//     {
-//         Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
-//     }
+    // Print the inputs
+    Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+    foreach (var path in testFilePaths)
+    {
+        Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
+    }
 
-//     // Let the user know exactly where the safe file was generated
-//     Console.ForegroundColor = ConsoleColor.Cyan;
-//     Console.WriteLine($"\n[FINAL DESTINATION]:");
-//     Console.WriteLine($"  OUT -> {finalSavedPath}");
+    // Let the user know exactly where the safe files were generated
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
+    foreach (var savedPath in finalSavedPaths)
+    {
+        Console.WriteLine($"  OUT -> {savedPath}");
+        
+        // Let the user know if the collision handler renamed something
+        if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
+            Console.ForegroundColor = ConsoleColor.Cyan;
+        }
+    }
     
-//     // Check if the auto-renamer had to step in (e.g., generated Master_Merged_Document_1.pdf)
-//     if (Path.GetFileName(finalSavedPath) != $"{desiredFileName}.pdf")
-//     {
-//         Console.ForegroundColor = ConsoleColor.DarkGray;
-//         Console.WriteLine($"  (Note: Filename was auto-adjusted by the collision handler to prevent overwrites)");
-//     }
-    
-//     Console.ResetColor();
-// }
-// catch (Exception ex)
-// {
-//     Console.ForegroundColor = ConsoleColor.Red;
-//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
-//     Console.WriteLine(ex.StackTrace);
-//     Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
-//     Console.ResetColor();
-// }
+    Console.ResetColor();
+}
+catch (Exception ex)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+    Console.WriteLine(ex.StackTrace);
+    Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
+    Console.ResetColor();
+}
 
 
 
@@ -588,132 +595,132 @@ class Program
 
 
 // SIXTH LIBRE API 
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using DesktopEngine.Sys; // Matches the namespace of your new CommandGateway class
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using DesktopEngine.Sys; // Matches the namespace of your new CommandGateway class
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("=================================================");
-Console.WriteLine("    🚀 UN-KILLABLE BINARY CONVERSION ENGINE");
-Console.WriteLine("=================================================\n");
-Console.ResetColor();
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("    🚀 UN-KILLABLE BINARY CONVERSION ENGINE");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
 
-// 1. System Paths & Environment Configuration
-string libreOfficePath = @"C:\Users\GERMANTATE\Documents\lothinholder\lothin\App\libreoffice\program\soffice.exe";
+// // 1. System Paths & Environment Configuration
+// string libreOfficePath = @"C:\Users\GERMANTATE\Documents\lothinholder\lothin\App\libreoffice\program\soffice.exe";
 
-string[] testSourcePaths = new string[] 
-{
-    @"C:\Users\GERMANTATE\Downloads\partx.docx",
-    @"C:\Users\GERMANTATE\Downloads\part1.docx"
-}; 
+// string[] testSourcePaths = new string[] 
+// {
+//     @"C:\Users\GERMANTATE\Downloads\partx.docx",
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx"
+// }; 
 
-string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "ConvertedOutput");
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "ConvertedOutput");
 
-try
-{
-    // --- ENGINE CRITICAL SANITY CHECKS ---
-    if (!File.Exists(libreOfficePath))
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"[CRITICAL FAILURE] LibreOffice binary missing at target path:\n -> {libreOfficePath}");
-        Console.ResetColor();
-        return;
-    }
+// try
+// {
+//     // --- ENGINE CRITICAL SANITY CHECKS ---
+//     if (!File.Exists(libreOfficePath))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Red;
+//         Console.WriteLine($"[CRITICAL FAILURE] LibreOffice binary missing at target path:\n -> {libreOfficePath}");
+//         Console.ResetColor();
+//         return;
+//     }
 
-    var missingFiles = testSourcePaths.Where(path => !File.Exists(path)).ToList();
-    if (missingFiles.Any())
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("[WARNING] The following source target files were not found:");
-        foreach (var missing in missingFiles)
-        {
-            Console.WriteLine($" -> {missing}");
-        }
-        Console.WriteLine("\nPlease verify files exist in your Downloads folder before executing.");
-        Console.ResetColor();
-        return;
-    }
+//     var missingFiles = testSourcePaths.Where(path => !File.Exists(path)).ToList();
+//     if (missingFiles.Any())
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("[WARNING] The following source target files were not found:");
+//         foreach (var missing in missingFiles)
+//         {
+//             Console.WriteLine($" -> {missing}");
+//         }
+//         Console.WriteLine("\nPlease verify files exist in your Downloads folder before executing.");
+//         Console.ResetColor();
+//         return;
+//     }
 
-    // Ensure local destination output vault exists
-    if (!Directory.Exists(baseOutputDirectory))
-    {
-        Directory.CreateDirectory(baseOutputDirectory);
-    }
+//     // Ensure local destination output vault exists
+//     if (!Directory.Exists(baseOutputDirectory))
+//     {
+//         Directory.CreateDirectory(baseOutputDirectory);
+//     }
 
-    Console.WriteLine($"Found Core Binary: {Path.GetFileName(libreOfficePath)}");
-    Console.WriteLine($"Queued Jobs:      {testSourcePaths.Length} assets ready for compilation");
-    Console.WriteLine($"Target Directory: {baseOutputDirectory}");
-    Console.WriteLine("Execution Policy: Pure Single-Threaded Blocking. No superhero parallel garbage.\n");
-    Console.WriteLine("-------------------------------------------------\n");
+//     Console.WriteLine($"Found Core Binary: {Path.GetFileName(libreOfficePath)}");
+//     Console.WriteLine($"Queued Jobs:      {testSourcePaths.Length} assets ready for compilation");
+//     Console.WriteLine($"Target Directory: {baseOutputDirectory}");
+//     Console.WriteLine("Execution Policy: Pure Single-Threaded Blocking. No superhero parallel garbage.\n");
+//     Console.WriteLine("-------------------------------------------------\n");
 
-    // 2. Start Global Performance Timer
-    Stopwatch globalClock = Stopwatch.StartNew();
+//     // 2. Start Global Performance Timer
+//     Stopwatch globalClock = Stopwatch.StartNew();
 
-    // 3. EXECUTE THE SINGLE-THREADED LOOP
-    // The engine processes exactly 1 file at a time, blocks until complete, and streams destination.
-    for (int i = 0; i < testSourcePaths.Length; i++)
-    {
-        string currentFile = testSourcePaths[i];
-        string originalFileName = Path.GetFileName(currentFile);
-        string baseNameNoExt = Path.GetFileNameWithoutExtension(currentFile);
+//     // 3. EXECUTE THE SINGLE-THREADED LOOP
+//     // The engine processes exactly 1 file at a time, blocks until complete, and streams destination.
+//     for (int i = 0; i < testSourcePaths.Length; i++)
+//     {
+//         string currentFile = testSourcePaths[i];
+//         string originalFileName = Path.GetFileName(currentFile);
+//         string baseNameNoExt = Path.GetFileNameWithoutExtension(currentFile);
         
-        Console.Write($"[{i + 1}/{testSourcePaths.Length}] Compiling visual layout for: {originalFileName}... ");
+//         Console.Write($"[{i + 1}/{testSourcePaths.Length}] Compiling visual layout for: {originalFileName}... ");
 
-        // Determine the target conversion mode based on the input extension dynamically
-        string currentExtension = Path.GetExtension(currentFile).ToLower();
-        string executionMode = currentExtension == ".pptx" ? "pptx-pdf" : "docx-pdf";
-        string targetExtension = ".pdf";
+//         // Determine the target conversion mode based on the input extension dynamically
+//         string currentExtension = Path.GetExtension(currentFile).ToLower();
+//         string executionMode = currentExtension == ".pptx" ? "pptx-pdf" : "docx-pdf";
+//         string targetExtension = ".pdf";
 
-        Stopwatch itemClock = Stopwatch.StartNew();
+//         Stopwatch itemClock = Stopwatch.StartNew();
 
-        // Fire the single-threaded agnostic gateway
-        string finalSavedPath = CommandGateway.Convert(
-            libreOfficeExePath: libreOfficePath,
-            filepath: currentFile,
-            newFilename: baseNameNoExt, // Keep original base name as default target
-            folderPath: baseOutputDirectory,
-            mode: executionMode
-        );
+//         // Fire the single-threaded agnostic gateway
+//         string finalSavedPath = CommandGateway.Convert(
+//             libreOfficeExePath: libreOfficePath,
+//             filepath: currentFile,
+//             newFilename: baseNameNoExt, // Keep original base name as default target
+//             folderPath: baseOutputDirectory,
+//             mode: executionMode
+//         );
 
-        itemClock.Stop();
+//         itemClock.Stop();
 
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"DONE ({itemClock.ElapsedMilliseconds} ms)");
-        Console.ResetColor();
+//         Console.ForegroundColor = ConsoleColor.Green;
+//         Console.WriteLine($"DONE ({itemClock.ElapsedMilliseconds} ms)");
+//         Console.ResetColor();
 
-        // Print final location details and flag if the collision engine handled a file name overwrite
-        Console.WriteLine($"  └─ OUT -> {finalSavedPath}");
+//         // Print final location details and flag if the collision engine handled a file name overwrite
+//         Console.WriteLine($"  └─ OUT -> {finalSavedPath}");
         
-        string expectedDefaultName = $"{baseNameNoExt}{targetExtension}";
-        if (Path.GetFileName(finalSavedPath) != expectedDefaultName)
-        {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"  └─ [SYSTEM NOTE]: File collision detected. Safely re-indexed to prevent data corruption.");
-            Console.ResetColor();
-        }
-        Console.WriteLine();
-    }
+//         string expectedDefaultName = $"{baseNameNoExt}{targetExtension}";
+//         if (Path.GetFileName(finalSavedPath) != expectedDefaultName)
+//         {
+//             Console.ForegroundColor = ConsoleColor.DarkGray;
+//             Console.WriteLine($"  └─ [SYSTEM NOTE]: File collision detected. Safely re-indexed to prevent data corruption.");
+//             Console.ResetColor();
+//         }
+//         Console.WriteLine();
+//     }
 
-    globalClock.Stop();
+//     globalClock.Stop();
 
-    // 4. Final System Summary Output
-    Console.WriteLine("✨ --- ALL PIPELINE JOBS COMPLETE --- ✨\n");
+//     // 4. Final System Summary Output
+//     Console.WriteLine("✨ --- ALL PIPELINE JOBS COMPLETE --- ✨\n");
     
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine($"✅ Successfully compiled and verified {testSourcePaths.Length} documents via headless vector translation!");
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"🚀 Total Pipeline Running Time: {globalClock.ElapsedMilliseconds} ms");
-    Console.ResetColor();
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\n❌ [CRITICAL ENGINE PIPELINE FAILURE]: {ex.Message}");
-    Console.WriteLine(ex.StackTrace);
-    Console.ResetColor();
-}
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully compiled and verified {testSourcePaths.Length} documents via headless vector translation!");
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"🚀 Total Pipeline Running Time: {globalClock.ElapsedMilliseconds} ms");
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL ENGINE PIPELINE FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.ResetColor();
+// }
 
 
 
