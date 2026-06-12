@@ -324,99 +324,482 @@ class Program
 
 
 
-// FORUTH PDF MERGER
+// // FORUTH PDF MERGER
 
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using PdfUtilities; // Ensure this matches the namespace of your PdfMerger class
+
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("   🚀 HIGH-TIER PDF STRUCTURAL MERGER ENGINE");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
+
+// // 1. Define Paths (Swap these out with real PDFs on your machine)
+// string[] testPdfPaths = new string[] 
+// {
+// "C:/Users/GERMANTATE/Downloads/china.pdf",
+// "C:/Users/GERMANTATE/Downloads/japan.pdf",
+// "C:/Users/GERMANTATE/Downloads/ArtOfWar.pdf",
+// "C:/Users/GERMANTATE/Downloads/canva1.pdf",
+// "C:/Users/GERMANTATE/Downloads/canva2.pdf"
+// }; 
+
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+// string desiredFileName = "Master_Merged_Document.pdf";
+
+// try
+// {
+//     // --- QUICK SANITY CHECK FOR TESTING ---
+//     var missingFiles = testPdfPaths.Where(path => !File.Exists(path)).ToList();
+//     if (missingFiles.Any())
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("[WARNING] The following source PDFs were not found:");
+//         foreach (var missing in missingFiles)
+//         {
+//             Console.WriteLine($" -> {missing}");
+//         }
+//         Console.WriteLine("\nPlease update the 'testPdfPaths' array to point to real PDFs on your computer.");
+//         Console.ResetColor();
+//         return;
+//     }
+
+//     Console.WriteLine($"Merging {testPdfPaths.Length} PDF files...");
+//     Console.WriteLine($"Target Dir: {baseOutputDirectory}");
+//     Console.WriteLine($"Target Name:{desiredFileName}");
+//     Console.WriteLine("Status:     Executing binary-structural merge (Zero RAM Bloat)...\n");
+
+//     // 2. Start Timer to track Beast Mode Speed
+//     Stopwatch sw = Stopwatch.StartNew();
+
+//     // 3. EXECUTE THE PURE ENGINE
+//     string finalSavedPath = PdfMerger.Merge(
+//         pdfPaths: testPdfPaths, 
+//         filePathToSave: baseOutputDirectory, 
+//         newFileName: desiredFileName
+//     );
+
+//     sw.Stop();
+
+//     // 4. Output Results
+//     Console.WriteLine("✨ --- MERGE COMPLETE --- ✨\n");
+    
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully bound {testPdfPaths.Length} documents structurally in {sw.ElapsedMilliseconds} ms!");
+//     Console.ResetColor();
+
+//     // Print the inputs
+//     Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+//     foreach (var path in testPdfPaths)
+//     {
+//         Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
+//     }
+
+//     // Let the user know exactly where the safe file was generated (shows if collision logic activated)
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"\n[FINAL DESTINATION]:");
+//     Console.WriteLine($"  OUT -> {finalSavedPath}");
+    
+//     // Check if the auto-renamer had to step in
+//     if (Path.GetFileName(finalSavedPath) != desiredFileName)
+//     {
+//         Console.ForegroundColor = ConsoleColor.DarkGray;
+//         Console.WriteLine($"  (Note: Filename was auto-adjusted to prevent overwriting an existing file)");
+//     }
+    
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.ResetColor();
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// FIFTH DOCX MERGER
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using Orchestration; // Matches the namespace of your DocxMerger2Pdf class
+
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
+
+// // 1. Define Paths (Swap these out with real files on your machine)
+// string[] testDocxPaths = new string[] 
+// {
+//     @"C:\Users\GERMANTATE\Downloads\hgf.pptx",
+//     @"C:\Users\GERMANTATE\Downloads\hgf.pptx"
+// }; 
+
+// // IMPORTANT: The orchestrator requires the absolute path to LibreOffice
+// string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
+
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+// // NOTE: The engine automatically enforces the .pdf extension. Provide the base name.
+// string desiredFileName = "Master_Merged_Document";
+
+// try
+// {
+//     // --- QUICK SANITY CHECK FOR TESTING ---
+//     bool abort = false;
+
+//     if (!File.Exists(libreOfficePath))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Red;
+//         Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
+//         Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
+//         abort = true;
+//     }
+
+//     var missingFiles = testDocxPaths.Where(path => !File.Exists(path)).ToList();
+//     if (missingFiles.Any())
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("[WARNING] The following source DOCX files were not found:");
+//         foreach (var missing in missingFiles)
+//         {
+//             Console.WriteLine($" -> {missing}");
+//         }
+//         Console.WriteLine("\nPlease update the 'testDocxPaths' array to point to real DOCX files on your computer.");
+//         abort = true;
+//     }
+
+//     if (abort)
+//     {
+//         Console.ResetColor();
+//         return;
+//     }
+
+//     // Ensure output directory exists before executing
+//     if (!Directory.Exists(baseOutputDirectory))
+//     {
+//         Directory.CreateDirectory(baseOutputDirectory);
+//     }
+
+//     Console.WriteLine($"Converting & Merging {testDocxPaths.Length} DOCX files...");
+//     Console.WriteLine($"Gateway:     {libreOfficePath}");
+//     Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
+//     Console.WriteLine($"Target Name: {desiredFileName}.pdf");
+//     Console.WriteLine("Status:      Spinning up headless conversion sandboxes and structural PDF merger...\n");
+
+//     // 2. Start Timer to track Beast Mode Speed
+//     Stopwatch sw = Stopwatch.StartNew();
+
+//     // 3. EXECUTE THE ORCHESTRATOR
+//     string finalSavedPath = OfficeBatchToPdfMerger.ConvertAndMerge(
+//         inputPaths: testDocxPaths, 
+//         newFileName: desiredFileName,
+//         filePathToSave: baseOutputDirectory, 
+//         libreOfficeExePath: libreOfficePath,
+//         mode : "pptx-pdf"
+//     );
+
+//     sw.Stop();
+
+//     // 4. Output Results
+//     Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
+    
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully converted and merged {testDocxPaths.Length} documents structurally in {sw.ElapsedMilliseconds} ms!");
+//     Console.ResetColor();
+
+//     // Print the inputs
+//     Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+//     foreach (var path in testDocxPaths)
+//     {
+//         Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
+//     }
+
+//     // Let the user know exactly where the safe file was generated
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"\n[FINAL DESTINATION]:");
+//     Console.WriteLine($"  OUT -> {finalSavedPath}");
+    
+//     // Check if the auto-renamer had to step in (e.g., generated Master_Merged_Document_1.pdf)
+//     if (Path.GetFileName(finalSavedPath) != $"{desiredFileName}.pdf")
+//     {
+//         Console.ForegroundColor = ConsoleColor.DarkGray;
+//         Console.WriteLine($"  (Note: Filename was auto-adjusted by the collision handler to prevent overwrites)");
+//     }
+    
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
+//     Console.ResetColor();
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// SIXTH LIBRE API 
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using PdfUtilities; // Ensure this matches the namespace of your PdfMerger class
+using DesktopEngine.Sys; // Matches the namespace of your new CommandGateway class
 
 Console.ForegroundColor = ConsoleColor.Cyan;
 Console.WriteLine("=================================================");
-Console.WriteLine("   🚀 HIGH-TIER PDF STRUCTURAL MERGER ENGINE");
+Console.WriteLine("    🚀 UN-KILLABLE BINARY CONVERSION ENGINE");
 Console.WriteLine("=================================================\n");
 Console.ResetColor();
 
-// 1. Define Paths (Swap these out with real PDFs on your machine)
-string[] testPdfPaths = new string[] 
+// 1. System Paths & Environment Configuration
+string libreOfficePath = @"C:\Users\GERMANTATE\Documents\lothinholder\lothin\App\libreoffice\program\soffice.exe";
+
+string[] testSourcePaths = new string[] 
 {
-"C:/Users/GERMANTATE/Downloads/china.pdf",
-"C:/Users/GERMANTATE/Downloads/japan.pdf",
-"C:/Users/GERMANTATE/Downloads/ArtOfWar.pdf",
-"C:/Users/GERMANTATE/Downloads/canva1.pdf",
-"C:/Users/GERMANTATE/Downloads/canva2.pdf"
+    @"C:\Users\GERMANTATE\Downloads\partx.docx",
+    @"C:\Users\GERMANTATE\Downloads\part1.docx"
 }; 
 
-string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
-string desiredFileName = "Master_Merged_Document.pdf";
+string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "ConvertedOutput");
 
 try
 {
-    // --- QUICK SANITY CHECK FOR TESTING ---
-    var missingFiles = testPdfPaths.Where(path => !File.Exists(path)).ToList();
-    if (missingFiles.Any())
+    // --- ENGINE CRITICAL SANITY CHECKS ---
+    if (!File.Exists(libreOfficePath))
     {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("[WARNING] The following source PDFs were not found:");
-        foreach (var missing in missingFiles)
-        {
-            Console.WriteLine($" -> {missing}");
-        }
-        Console.WriteLine("\nPlease update the 'testPdfPaths' array to point to real PDFs on your computer.");
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine($"[CRITICAL FAILURE] LibreOffice binary missing at target path:\n -> {libreOfficePath}");
         Console.ResetColor();
         return;
     }
 
-    Console.WriteLine($"Merging {testPdfPaths.Length} PDF files...");
-    Console.WriteLine($"Target Dir: {baseOutputDirectory}");
-    Console.WriteLine($"Target Name:{desiredFileName}");
-    Console.WriteLine("Status:     Executing binary-structural merge (Zero RAM Bloat)...\n");
+    var missingFiles = testSourcePaths.Where(path => !File.Exists(path)).ToList();
+    if (missingFiles.Any())
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("[WARNING] The following source target files were not found:");
+        foreach (var missing in missingFiles)
+        {
+            Console.WriteLine($" -> {missing}");
+        }
+        Console.WriteLine("\nPlease verify files exist in your Downloads folder before executing.");
+        Console.ResetColor();
+        return;
+    }
 
-    // 2. Start Timer to track Beast Mode Speed
-    Stopwatch sw = Stopwatch.StartNew();
+    // Ensure local destination output vault exists
+    if (!Directory.Exists(baseOutputDirectory))
+    {
+        Directory.CreateDirectory(baseOutputDirectory);
+    }
 
-    // 3. EXECUTE THE PURE ENGINE
-    string finalSavedPath = PdfMerger.Merge(
-        pdfPaths: testPdfPaths, 
-        filePathToSave: baseOutputDirectory, 
-        newFileName: desiredFileName
-    );
+    Console.WriteLine($"Found Core Binary: {Path.GetFileName(libreOfficePath)}");
+    Console.WriteLine($"Queued Jobs:      {testSourcePaths.Length} assets ready for compilation");
+    Console.WriteLine($"Target Directory: {baseOutputDirectory}");
+    Console.WriteLine("Execution Policy: Pure Single-Threaded Blocking. No superhero parallel garbage.\n");
+    Console.WriteLine("-------------------------------------------------\n");
 
-    sw.Stop();
+    // 2. Start Global Performance Timer
+    Stopwatch globalClock = Stopwatch.StartNew();
 
-    // 4. Output Results
-    Console.WriteLine("✨ --- MERGE COMPLETE --- ✨\n");
+    // 3. EXECUTE THE SINGLE-THREADED LOOP
+    // The engine processes exactly 1 file at a time, blocks until complete, and streams destination.
+    for (int i = 0; i < testSourcePaths.Length; i++)
+    {
+        string currentFile = testSourcePaths[i];
+        string originalFileName = Path.GetFileName(currentFile);
+        string baseNameNoExt = Path.GetFileNameWithoutExtension(currentFile);
+        
+        Console.Write($"[{i + 1}/{testSourcePaths.Length}] Compiling visual layout for: {originalFileName}... ");
+
+        // Determine the target conversion mode based on the input extension dynamically
+        string currentExtension = Path.GetExtension(currentFile).ToLower();
+        string executionMode = currentExtension == ".pptx" ? "pptx-pdf" : "docx-pdf";
+        string targetExtension = ".pdf";
+
+        Stopwatch itemClock = Stopwatch.StartNew();
+
+        // Fire the single-threaded agnostic gateway
+        string finalSavedPath = CommandGateway.Convert(
+            libreOfficeExePath: libreOfficePath,
+            filepath: currentFile,
+            newFilename: baseNameNoExt, // Keep original base name as default target
+            folderPath: baseOutputDirectory,
+            mode: executionMode
+        );
+
+        itemClock.Stop();
+
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"DONE ({itemClock.ElapsedMilliseconds} ms)");
+        Console.ResetColor();
+
+        // Print final location details and flag if the collision engine handled a file name overwrite
+        Console.WriteLine($"  └─ OUT -> {finalSavedPath}");
+        
+        string expectedDefaultName = $"{baseNameNoExt}{targetExtension}";
+        if (Path.GetFileName(finalSavedPath) != expectedDefaultName)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"  └─ [SYSTEM NOTE]: File collision detected. Safely re-indexed to prevent data corruption.");
+            Console.ResetColor();
+        }
+        Console.WriteLine();
+    }
+
+    globalClock.Stop();
+
+    // 4. Final System Summary Output
+    Console.WriteLine("✨ --- ALL PIPELINE JOBS COMPLETE --- ✨\n");
     
     Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine($"✅ Successfully bound {testPdfPaths.Length} documents structurally in {sw.ElapsedMilliseconds} ms!");
-    Console.ResetColor();
-
-    // Print the inputs
-    Console.WriteLine("\n[SOURCE DOCUMENTS]:");
-    foreach (var path in testPdfPaths)
-    {
-        Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
-    }
-
-    // Let the user know exactly where the safe file was generated (shows if collision logic activated)
+    Console.WriteLine($"✅ Successfully compiled and verified {testSourcePaths.Length} documents via headless vector translation!");
     Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"\n[FINAL DESTINATION]:");
-    Console.WriteLine($"  OUT -> {finalSavedPath}");
-    
-    // Check if the auto-renamer had to step in
-    if (Path.GetFileName(finalSavedPath) != desiredFileName)
-    {
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine($"  (Note: Filename was auto-adjusted to prevent overwriting an existing file)");
-    }
-    
+    Console.WriteLine($"🚀 Total Pipeline Running Time: {globalClock.ElapsedMilliseconds} ms");
     Console.ResetColor();
 }
 catch (Exception ex)
 {
     Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+    Console.WriteLine($"\n❌ [CRITICAL ENGINE PIPELINE FAILURE]: {ex.Message}");
     Console.WriteLine(ex.StackTrace);
     Console.ResetColor();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // SEVENTH UNZIPPER
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.IO.Compression;
+
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("    🚀 NATIVE .NET ZIP EXTRACTION BENCHMARK     ");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
+
+// string sourceZip = @"C:\Users\GERMANTATE\Documents\lothin.zip";
+// string targetDir = @"C:\Users\GERMANTATE\Documents\lothinholder";
+
+// try
+// {
+//     // 1. Guardrail Check
+//     if (!File.Exists(sourceZip))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Red;
+//         Console.WriteLine($"[FATAL ERROR] Source archive missing at: {sourceZip}");
+//         Console.ResetColor();
+//         return;
+//     }
+
+//     // 2. Clear out target directory for a 100% clean benchmark
+//     if (Directory.Exists(targetDir))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("🔄 Target folder detected. Purging old directory layout for an accurate benchmark...");
+//         Console.ResetColor();
+//         Directory.Delete(targetDir, true);
+//     }
+    
+//     Directory.CreateDirectory(targetDir);
+
+//     Console.WriteLine($"📦 Source Payload: {Path.GetFileName(sourceZip)}");
+//     Console.WriteLine($"📁 Destination:    {targetDir}");
+//     Console.WriteLine("⏳ Status:         Decompressing bitstream natively via hardware-accelerated Deflate...");
+//     Console.WriteLine("-------------------------------------------------\n");
+
+//     // 3. Start High-Precision Timer and Execute
+//     Stopwatch sw = Stopwatch.StartNew();
+    
+//     ZipFile.ExtractToDirectory(sourceZip, targetDir);
+    
+//     sw.Stop();
+
+//     // 4. Output Performance Metrics
+//     Console.WriteLine("✨ --- DECOMPRESSION PIPELINE COMPLETE --- ✨\n");
+    
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine("✅ Successfully unpacked Lothin binaries layout to disk with zero external dependencies!");
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"🚀 Total Running Time: {sw.ElapsedMilliseconds} ms ({sw.Elapsed.TotalSeconds:F2} seconds)");
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL PIPELINE FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.ResetColor();
+// }
