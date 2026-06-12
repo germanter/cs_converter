@@ -1,111 +1,96 @@
-﻿// using System;  //// FIRST IMAGE TO IMAGE
-// using System.IO;
-// using System.Threading;
-// using System.Threading.Tasks;
+﻿using System;  //// FIRST IMAGE TO IMAGE
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
-// // 1. Validate Command Line Arguments
-// if (args.Length < 3)
-// {
-//     Console.ForegroundColor = ConsoleColor.Yellow;
-//     Console.WriteLine("⚠️ Missing Arguments!");
-//     Console.WriteLine("Usage:   dotnet run -- <format> <output_directory> <image1> <image2> ...");
-//     Console.WriteLine("Example: dotnet run -- webp ./ConvertedImages ./myimage.png ./myphoto.jpg");
-//     Console.ResetColor();
-//     return;
-// }
-
-// string targetFormat = args[0];
-// string outputPath = args[1];
-
-// // Extract all trailing image paths from argument index 2 through the end
-// string[] sourceImages = args[2..];
-
-// Console.WriteLine($"🚀 Starting conversion of {sourceImages.Length} image(s) to '{targetFormat.ToUpperInvariant()}'...\n");
-
-// // 2. Wire Up the Progress Reporter (Leveraging your engine's IProgress implementation)
-// var progressReporter = new Progress<double>(percent =>
-// {
-//     // The "\r" characters forces the console cursor back to the start of the line 
-//     // to provide a smooth, in-place percentage counter.
-//     Console.Write($"\r🔄 Progress: [{percent:F1}%] Processing assets...");
-// });
-
-// // 3. Graceful Cancellation Handling (Tied directly to your engine's CancellationToken)
-// using var cts = new CancellationTokenSource();
-// Console.CancelKeyPress += (sender, e) =>
-// {
-//     Console.ForegroundColor = ConsoleColor.Yellow;
-//     Console.WriteLine("\n🛑 Cancellation requested! Halting execution safely...");
-//     Console.ResetColor();
-    
-//     cts.Cancel();
-//     e.Cancel = true; // Prevents the operating system from abruptly killing the process
-// };
-
-// try
-// {
-//     // 4. Execute the Beast Mode Async Image Converter
-//     var convertedFiles = await UltimateImageConverter.ConvertImagesAsync(
-//         sourceImages, 
-//         targetFormat, 
-//         outputPath, 
-//         progressReporter, 
-//         cts.Token
-//     );
-
-//     // 5. Output Processing Results
-//     Console.WriteLine("\n\n✨ --- CONVERSION COMPLETE --- ✨");
-    
-//     if (convertedFiles.Count == sourceImages.Length)
-//     {
-//         Console.ForegroundColor = ConsoleColor.Green;
-//         Console.WriteLine($"✅ All images successfully processed: {convertedFiles.Count}/{sourceImages.Length}\n");
-//     }
-//     else
-//     {
-//         Console.ForegroundColor = ConsoleColor.Yellow;
-//         Console.WriteLine($"⚠️ Completed with skipped files or errors: {convertedFiles.Count}/{sourceImages.Length}\n");
-//     }
-//     Console.ResetColor();
-
-//     foreach (var path in convertedFiles)
-//     {
-//         Console.WriteLine($"  [DONE] -> {path}");
-//     }
-// }
-// catch (OperationCanceledException)
-// {
-//     Console.ForegroundColor = ConsoleColor.Red;
-//     Console.WriteLine("\n❌ Operation aborted by the user.");
-//     Console.ResetColor();
-// }
-// catch (Exception ex)
-// {
-//     Console.ForegroundColor = ConsoleColor.Red;
-//     Console.WriteLine($"\n❌ Critical System Failure: {ex.Message}");
-//     Console.ResetColor();
-// }
-
-
-/* ===================================================================================
-💡 NOTE FOR FUTURE AVALONIA DESKTOP GUI TRANSITION:
-When you are ready to switch from this CLI test tool to a full Avalonia Desktop App,
-comment out everything above this box, and uncomment the setup sequence below.
-===================================================================================
-
-using Avalonia;
-
-class Program
+// 1. Validate Command Line Arguments
+if (args.Length < 3)
 {
-    public static void Main(string[] args) =>
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-
-    public static AppBuilder BuildAvaloniaApp() =>
-        AppBuilder.Configure<ui.App>()
-            .UsePlatformDetect()
-            .LogToTrace();
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine("⚠️ Missing Arguments!");
+    Console.WriteLine("Usage:   dotnet run -- <format> <output_directory> <image1> <image2> ...");
+    Console.WriteLine("Example: dotnet run -- webp ./ConvertedImages ./myimage.png ./myphoto.jpg");
+    Console.ResetColor();
+    return;
 }
-*/
+
+string targetFormat = args[0];
+string outputPath = args[1];
+
+// Extract all trailing image paths from argument index 2 through the end
+string[] sourceImages = args[2..];
+
+Console.WriteLine($"🚀 Starting conversion of {sourceImages.Length} image(s) to '{targetFormat.ToUpperInvariant()}'...\n");
+
+// 2. Wire Up the Progress Reporter (Leveraging your engine's IProgress implementation)
+var progressReporter = new Progress<double>(percent =>
+{
+    // The "\r" characters forces the console cursor back to the start of the line 
+    // to provide a smooth, in-place percentage counter.
+    Console.Write($"\r🔄 Progress: [{percent:F1}%] Processing assets...");
+});
+
+// 3. Graceful Cancellation Handling (Tied directly to your engine's CancellationToken)
+using var cts = new CancellationTokenSource();
+Console.CancelKeyPress += (sender, e) =>
+{
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine("\n🛑 Cancellation requested! Halting execution safely...");
+    Console.ResetColor();
+    
+    cts.Cancel();
+    e.Cancel = true; // Prevents the operating system from abruptly killing the process
+};
+
+try
+{
+    // 4. Execute the Beast Mode Async Image Converter
+    var convertedFiles = await UltimateImageConverter.ConvertImagesAsync(
+        sourceImages, 
+        targetFormat, 
+        outputPath, 
+        progressReporter, 
+        cts.Token
+    );
+
+    // 5. Output Processing Results
+    Console.WriteLine("\n\n✨ --- CONVERSION COMPLETE --- ✨");
+    
+    if (convertedFiles.Count == sourceImages.Length)
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"✅ All images successfully processed: {convertedFiles.Count}/{sourceImages.Length}\n");
+    }
+    else
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"⚠️ Completed with skipped files or errors: {convertedFiles.Count}/{sourceImages.Length}\n");
+    }
+    Console.ResetColor();
+
+    foreach (var path in convertedFiles)
+    {
+        Console.WriteLine($"  [DONE] -> {path}");
+    }
+}
+catch (OperationCanceledException)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("\n❌ Operation aborted by the user.");
+    Console.ResetColor();
+}
+catch (Exception ex)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine($"\n❌ Critical System Failure: {ex.Message}");
+    Console.ResetColor();
+}
+
+
+
+
+
+
 
 
 
@@ -439,134 +424,134 @@ class Program
 
 
 
-// FIFTH OFFICE MERGER
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
+// // FIFTH OFFICE MERGER
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("=================================================");
-Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
-Console.WriteLine("=================================================\n");
-Console.ResetColor();
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
 
-// 1. Define Paths & Modes
-string[] testFilePaths = new string[] 
-{
-    @"C:\Users\GERMANTATE\Downloads\part1.docx",
-    @"C:\Users\GERMANTATE\Downloads\part1.docx"
-}; 
+// // 1. Define Paths & Modes
+// string[] testFilePaths = new string[] 
+// {
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx",
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx"
+// }; 
 
-// IMPORTANT: The orchestrator requires the absolute path to LibreOffice
-string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
+// // IMPORTANT: The orchestrator requires the absolute path to LibreOffice
+// string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
 
-string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
-string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+// string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
 
-// NEW PARAMETER: 1 to Merge all files, 0 to convert and dump individually
-int mergeOption = 1; 
+// // NEW PARAMETER: 1 to Merge all files, 0 to convert and dump individually
+// int mergeOption = 1; 
 
-try
-{
-    // --- QUICK SANITY CHECK FOR TESTING ---
-    bool abort = false;
+// try
+// {
+//     // --- QUICK SANITY CHECK FOR TESTING ---
+//     bool abort = false;
 
-    if (!File.Exists(libreOfficePath))
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
-        Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
-        abort = true;
-    }
+//     if (!File.Exists(libreOfficePath))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Red;
+//         Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
+//         Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
+//         abort = true;
+//     }
 
-    var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
-    if (missingFiles.Any())
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("[WARNING] The following source files were not found:");
-        foreach (var missing in missingFiles)
-        {
-            Console.WriteLine($" -> {missing}");
-        }
-        Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
-        abort = true;
-    }
+//     var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
+//     if (missingFiles.Any())
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("[WARNING] The following source files were not found:");
+//         foreach (var missing in missingFiles)
+//         {
+//             Console.WriteLine($" -> {missing}");
+//         }
+//         Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
+//         abort = true;
+//     }
 
-    if (abort)
-    {
-        Console.ResetColor();
-        return;
-    }
+//     if (abort)
+//     {
+//         Console.ResetColor();
+//         return;
+//     }
 
-    // Ensure output directory exists before executing
-    if (!Directory.Exists(baseOutputDirectory))
-    {
-        Directory.CreateDirectory(baseOutputDirectory);
-    }
+//     // Ensure output directory exists before executing
+//     if (!Directory.Exists(baseOutputDirectory))
+//     {
+//         Directory.CreateDirectory(baseOutputDirectory);
+//     }
 
-    Console.WriteLine($"Processing {testFilePaths.Length} files...");
-    Console.WriteLine($"Gateway:     {libreOfficePath}");
-    Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
-    Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
-    Console.WriteLine("Status:      Spinning up headless conversion sandboxes...\n");
+//     Console.WriteLine($"Processing {testFilePaths.Length} files...");
+//     Console.WriteLine($"Gateway:     {libreOfficePath}");
+//     Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
+//     Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
+//     Console.WriteLine("Status:      Spinning up headless conversion sandboxes...\n");
 
-    // 2. Start Timer to track Beast Mode Speed
-    Stopwatch sw = Stopwatch.StartNew();
+//     // 2. Start Timer to track Beast Mode Speed
+//     Stopwatch sw = Stopwatch.StartNew();
 
-    // 3. EXECUTE THE ORCHESTRATOR (Now returns string[])
-    string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
-        inputPaths: testFilePaths, 
-        newFileName: desiredFileName,
-        filePathToSave: baseOutputDirectory, 
-        libreOfficeExePath: libreOfficePath,
-        mode: "docx-pdf",
-        merge: mergeOption // Passed here
-    );
+//     // 3. EXECUTE THE ORCHESTRATOR (Now returns string[])
+//     string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
+//         inputPaths: testFilePaths, 
+//         newFileName: desiredFileName,
+//         filePathToSave: baseOutputDirectory, 
+//         libreOfficeExePath: libreOfficePath,
+//         mode: "docx-pdf",
+//         merge: mergeOption // Passed here
+//     );
 
-    sw.Stop();
+//     sw.Stop();
 
-    // 4. Output Results
-    Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
+//     // 4. Output Results
+//     Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
     
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
-    Console.ResetColor();
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
+//     Console.ResetColor();
 
-    // Print the inputs
-    Console.WriteLine("\n[SOURCE DOCUMENTS]:");
-    foreach (var path in testFilePaths)
-    {
-        Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
-    }
+//     // Print the inputs
+//     Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+//     foreach (var path in testFilePaths)
+//     {
+//         Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
+//     }
 
-    // Let the user know exactly where the safe files were generated
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
-    foreach (var savedPath in finalSavedPaths)
-    {
-        Console.WriteLine($"  OUT -> {savedPath}");
+//     // Let the user know exactly where the safe files were generated
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
+//     foreach (var savedPath in finalSavedPaths)
+//     {
+//         Console.WriteLine($"  OUT -> {savedPath}");
         
-        // Let the user know if the collision handler renamed something
-        if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
-        {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-        }
-    }
+//         // Let the user know if the collision handler renamed something
+//         if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
+//         {
+//             Console.ForegroundColor = ConsoleColor.DarkGray;
+//             Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
+//             Console.ForegroundColor = ConsoleColor.Cyan;
+//         }
+//     }
     
-    Console.ResetColor();
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
-    Console.WriteLine(ex.StackTrace);
-    Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
-    Console.ResetColor();
-}
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
+//     Console.ResetColor();
+// }
 
 
 
@@ -809,4 +794,282 @@ catch (Exception ex)
 //     Console.WriteLine($"\n❌ [CRITICAL PIPELINE FAILURE]: {ex.Message}");
 //     Console.WriteLine(ex.StackTrace);
 //     Console.ResetColor();
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// // cat sim
+// using Avalonia;
+// using Avalonia.Controls;
+// using Avalonia.Layout;
+// using Avalonia.Media;
+// using Avalonia.Themes.Fluent;
+// using Avalonia.Threading;
+// using System;
+// using System.Threading.Tasks;
+
+// // Resolve the name collision between System.IO.Path and Avalonia.Controls.Shapes.Path
+// using Path = Avalonia.Controls.Shapes.Path;
+
+// namespace InteractiveCatApp;
+
+// class Program
+// {
+//     [STAThread]
+//     public static void Main(string[] args) => BuildAvaloniaApp()
+//         .StartWithClassicDesktopLifetime(args);
+
+//     public static AppBuilder BuildAvaloniaApp() =>
+//         AppBuilder.Configure<App>()
+//             .UsePlatformDetect()
+//             .LogToTrace();
+// }
+
+// public class App : Application
+// {
+//     public override void Initialize() => Styles.Add(new FluentTheme());
+
+//     public override void OnFrameworkInitializationCompleted()
+//     {
+//         if (ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+//         {
+//             desktop.MainWindow = new MainWindow();
+//         }
+//         base.OnFrameworkInitializationCompleted();
+//     }
+// }
+
+// public class MainWindow : Window
+// {
+//     private Path eye1, eye2, eye3, eye4;
+//     private Button btnBlip, btnRest, btnFurious;
+//     private Canvas eyesContainer;
+//     private DispatcherTimer blinkTimer;
+
+//     public MainWindow()
+//     {
+//         Title = "Interactive Cat SVG Test";
+//         Width = 600;
+//         Height = 500;
+//         Background = SolidColorBrush.Parse("#1a1a1a");
+//         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
+//         // Container Stack Setup
+//         var mainStack = new StackPanel
+//         {
+//             VerticalAlignment = VerticalAlignment.Center,
+//             HorizontalAlignment = HorizontalAlignment.Center,
+//             Spacing = 20
+//         };
+
+//         // Viewbox behaves exactly like SVG viewBox scaling
+//         var viewbox = new Viewbox
+//         {
+//             MaxWidth = 500,
+//             Stretch = Stretch.Uniform
+//         };
+
+//         // Main Black Canvas base (Matching 75.5 x 44.3 coordinate space)
+//         var canvas = new Canvas
+//         {
+//             Width = 75.52,
+//             Height = 44.32,
+//             Background = Brushes.Black
+//         };
+
+//         // Factory function for handling SVG path definitions
+//         Path CreateCatPath(string data, double x, double y)
+//         {
+//             var path = new Path
+//             {
+//                 Data = Geometry.Parse(data),
+//                 Stroke = Brushes.White,
+//                 StrokeThickness = 1.5,
+//                 StrokeLineCap = PenLineCap.Round,
+//                 Fill = Brushes.Transparent
+//             };
+//             Canvas.SetLeft(path, x);
+//             Canvas.SetTop(path, y);
+//             return path;
+//         }
+
+//         // Add Base Structural Cat Paths (Ears, Face, Mouth)
+//         canvas.Children.Add(CreateCatPath("M0 0 C2.66 -7.87, 5.31 -15.74, 7.59 -22.49 M0 0 C1.96 -5.82, 3.93 -11.64, 7.59 -22.49", 10, 32.49));
+//         canvas.Children.Add(CreateCatPath("M0 0 C3.01 2.99, 6.02 5.97, 9.89 9.81 M0 0 C2.91 2.89, 5.82 5.78, 9.89 9.81", 17.86, 10.01));
+//         canvas.Children.Add(CreateCatPath("M0 0 C4.14 0.03, 8.29 0.06, 18.55 0.13 M0 0 C6.74 0.05, 13.47 0.09, 18.55 0.13", 27.91, 19.88));
+//         canvas.Children.Add(CreateCatPath("M0 0 C3.51 -3.15, 7.03 -6.29, 10.87 -9.73 M0 0 C4.09 -3.66, 8.18 -7.32, 10.87 -9.73", 46.43, 20.01));
+//         canvas.Children.Add(CreateCatPath("M0 0 C-2.62 -7.16, -5.23 -14.31, -8.18 -22.38 M0 0 C-2.3 -6.3, -4.61 -12.6, -8.18 -22.38", 65.52, 32.57));
+//         canvas.Children.Add(CreateCatPath("M0 0 C2.92 0.01, 5.84 0.02, 10.73 0.04 M0 0 C4.01 0.01, 8.03 0.03, 10.73 0.04", 32.26, 34.29));
+
+//         // Group Container Canvas for Eyes (Handles blinking scaling)
+//         eyesContainer = new Canvas
+//         {
+//             Width = 75.52,
+//             Height = 44.32,
+//             RenderTransformOrigin = new RelativePoint(38, 27, RelativeUnit.Absolute),
+//             RenderTransform = new ScaleTransform()
+//         };
+
+//         // Initialize Dynamic Eye Segments
+//         eye1 = CreateCatPath("M0 0 C3.35 1.69, 6.71 3.39, 9.04 4.56 M0 0 C2.1 1.06, 4.21 2.12, 9.04 4.56", 19.44, 24.26);
+//         eye2 = CreateCatPath("M0 0 C-3.39 0.02, -6.78 0.05, -10.11 0.07 M0 0 C-2.48 0.02, -4.96 0.04, -10.11 0.07", 28.42, 29.51);
+//         eye3 = CreateCatPath("M0 0 C3.45 -1.34, 6.9 -2.68, 9.31 -3.62 M0 0 C3.35 -1.3, 6.7 -2.6, 9.31 -3.62", 46.62, 28.47);
+//         eye4 = CreateCatPath("M0 0 C-2.74 -0.01, -5.47 -0.02, -10.51 -0.03 M0 0 C-3.81 -0.01, -7.62 -0.03, -10.51 -0.03", 57.15, 29.32);
+
+//         eyesContainer.Children.Add(eye1);
+//         eyesContainer.Children.Add(eye2);
+//         eyesContainer.Children.Add(eye3);
+//         eyesContainer.Children.Add(eye4);
+
+//         canvas.Children.Add(eyesContainer);
+//         viewbox.Child = canvas;
+//         mainStack.Children.Add(viewbox);
+
+//         // Control Panel Stack Setup
+//         var controlsStack = new StackPanel
+//         {
+//             Orientation = Orientation.Horizontal,
+//             Spacing = 15,
+//             HorizontalAlignment = HorizontalAlignment.Center
+//         };
+
+//         Button CreateButton(string text)
+//         {
+//             return new Button
+//             {
+//                 Content = text,
+//                 Padding = new Thickness(24, 12),
+//                 FontSize = 16,
+//                 CornerRadius = new CornerRadius(6),
+//                 BorderThickness = new Thickness(2)
+//             };
+//         }
+
+//         btnBlip = CreateButton("Blip");
+//         btnRest = CreateButton("Rest");
+//         btnFurious = CreateButton("Furious");
+
+//         btnBlip.Click += (s, e) => SetEyeState("blip");
+//         btnRest.Click += (s, e) => SetEyeState("rest");
+//         btnFurious.Click += (s, e) => SetEyeState("furious");
+
+//         controlsStack.Children.Add(btnBlip);
+//         controlsStack.Children.Add(btnRest);
+//         controlsStack.Children.Add(btnFurious);
+
+//         mainStack.Children.Add(controlsStack);
+//         Content = mainStack;
+
+//         // Setup Blinking dispatcher loop (Matches 4s CSS block)
+//         blinkTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+//         blinkTimer.Tick += BlinkTimer_Tick;
+
+//         // Fire Default State
+//         SetEyeState("blip");
+//     }
+
+//     private void SetEyeState(string state)
+//     {
+//         // Toggle individual path structures based on configuration rules:
+//         // blip = all elements, rest = paths 2 and 4, furious = paths 1 and 3
+//         eye1.IsVisible = (state == "blip" || state == "furious");
+//         eye2.IsVisible = (state == "blip" || state == "rest");
+//         eye3.IsVisible = (state == "blip" || state == "furious");
+//         eye4.IsVisible = (state == "blip" || state == "rest");
+
+//         // Handle animation activation state
+//         if (state == "blip")
+//         {
+//             blinkTimer.Start();
+//         }
+//         else
+//         {
+//             blinkTimer.Stop();
+//             ResetBlinkScale();
+//         }
+
+//         // Refresh dynamic UI Active Element Styles
+//         StyleButton(btnBlip, state == "blip");
+//         StyleButton(btnRest, state == "rest");
+//         StyleButton(btnFurious, state == "furious");
+//     }
+
+//     private void StyleButton(Button btn, bool isActive)
+//     {
+//         if (isActive)
+//         {
+//             btn.Background = Brushes.White;
+//             btn.Foreground = SolidColorBrush.Parse("#1a1a1a");
+//             btn.BorderBrush = Brushes.White;
+//             btn.FontWeight = FontWeight.Bold;
+//         }
+//         else
+//         {
+//             btn.Background = SolidColorBrush.Parse("#333");
+//             btn.Foreground = Brushes.White;
+//             btn.BorderBrush = SolidColorBrush.Parse("#ffffff33");
+//             btn.FontWeight = FontWeight.Normal;
+//         }
+//     }
+
+//     // Handled warning by explicitly marking sender argument as nullable (object? sender)
+//     private async void BlinkTimer_Tick(object? sender, EventArgs e)
+//     {
+//         if (eyesContainer.RenderTransform is ScaleTransform scale)
+//         {
+//             // Fast programmatic snap down and up to simulate a quick blink
+//             scale.ScaleY = 0.1;
+//             await Task.Delay(100);
+//             scale.ScaleY = 1.0;
+//         }
+//     }
+
+//     private void ResetBlinkScale()
+//     {
+//         if (eyesContainer.RenderTransform is ScaleTransform scale)
+//         {
+//             scale.ScaleY = 1.0;
+//         }
+//     }
 // }
