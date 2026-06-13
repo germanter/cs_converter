@@ -68,7 +68,7 @@ namespace DesktopEngine.Sys
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = libreOfficeExePath,
-                    Arguments = $"--headless --convert-to {convertArgs} --outdir \"{sandboxDir}\" \"{filepath}\"",
+                    Arguments = $"--headless --invisible --norestore --nofirststartwizard --convert-to {convertArgs} --outdir \"{sandboxDir}\" \"{filepath}\"",
                     UseShellExecute = false, 
                     CreateNoWindow = true,   
                     RedirectStandardOutput = true,
