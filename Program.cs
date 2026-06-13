@@ -99,97 +99,77 @@
 
 // SECOND IMAGE TO PDF
 
-// using ImageToPdfApp;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using ImageToPdfApp;
 
-// Console.WriteLine("=== High-Tier Image to PDF Converter ===");
+Console.WriteLine("=== High-Tier Image to PDF Converter ===");
 
-// try
-// {
-//     List<ImageInput> images =
-//     [
-//         new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
-// // --- Batch 1 (1-18) ---
-//     new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg"),
-//     new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.webp"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.webp", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.webp"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.png"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.png", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.png"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.jpg"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.jpg", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.jpg"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.UpsideDown180),
-    
-//     // --- Batch 2 Duplicates (19-36) ---
-//     new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.webp"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.webp", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.png"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.png", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.jpg"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.jpg", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.jpg"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.jpg", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.jpg", RotationSteps.Left270),
-    
-//     // --- Batch 3 Fillers (37-50) ---
-//     new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
-//     new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.webp", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.webp", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.webp"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.webp", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.webp"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-5.png", RotationSteps.UpsideDown180),
-//     new("C:/Users/GERMANTATE/Downloads/sample-4.png", RotationSteps.Left270),
-//     new("C:/Users/GERMANTATE/Downloads/sample-3.png"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-2.png", RotationSteps.Right90),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.png"),
-//     new("C:/Users/GERMANTATE/Downloads/sample-1.jpg", RotationSteps.UpsideDown180)
+// 1. Setup a CancellationTokenSource to handle user cancellation
+using var cts = new CancellationTokenSource();
 
+// Wire up Ctrl+C so it gracefully triggers our strict cancellation logic
+Console.CancelKeyPress += (sender, e) =>
+{
+    e.Cancel = true; // Prevent immediate ungraceful exit
+    Console.WriteLine("\n[!] Cancellation requested by user! Nuking process...");
+    cts.Cancel();
+};
 
-//     ];
+try
+{
+    List<ImageInput> images =
+    [
+        new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
+        new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg", RotationSteps.Right90),
+        new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff", RotationSteps.Left270),
+        new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp", RotationSteps.UpsideDown180),
+        new("C:/Users/GERMANTATE/Downloads/file_example_JPG_1MB.jpg"),
+        new("C:/Users/GERMANTATE/Downloads/file_example_TIFF_1MB.tiff"),
+        new("C:/Users/GERMANTATE/Downloads/file_example_WEBP_1500kB.webp"),
+    ];
 
-//     string targetDirectory =
-//         Path.Combine(Directory.GetCurrentDirectory(), "Output");
+    string targetDirectory =
+        Path.Combine(Directory.GetCurrentDirectory(), "Output");
 
-//     Console.WriteLine("Processing images...");
+    Console.WriteLine("Processing images... (Press Ctrl+C to cancel)");
 
-//     string savedPdfPath = ImageToPdfEngine.ConvertToPdf(
-//         images: images,
-//         saveDirectory: targetDirectory,
-//         filename: "FinalPresentation",
-//         pageSize: PageSizeOption.FitToImage,
-//         orientation: OrientationOption.Auto,
-//         margin: MarginOption.None,
-//         imageFit: ImageFitOption.FitKeepRatio,
-//         quality: 99
-//     );
+    // 2. Setup Progress Reporter
+    var progressReporter = new Progress<double>(percentage =>
+    {
+        // Prints progress on the same line
+        Console.Write($"\r-> Progress: {percentage:0.00}% completed  ");
+    });
 
-//     Console.WriteLine(
-//         $"\n[SUCCESS] PDF exceptionally constructed and saved to:\n-> {savedPdfPath}");
-// }
-// catch (Exception ex)
-// {
-//     Console.WriteLine($"\n[FATAL ERROR]: {ex}");
-// }
+    // 3. Pass the new parameters into the engine
+    string savedPdfPath = ImageToPdfEngine.ConvertToPdf(
+        images: images,
+        saveDirectory: targetDirectory,
+        filename: "FinalPresentation",
+        pageSize: PageSizeOption.FitToImage,
+        orientation: OrientationOption.Auto,
+        margin: MarginOption.None,
+        imageFit: ImageFitOption.FitKeepRatio,
+        quality: 100,
+        progress: progressReporter,      // <-- NEW
+        cancellationToken: cts.Token     // <-- NEW
+    );
+
+    Console.WriteLine(
+        $"\n\n[SUCCESS] PDF exceptionally constructed and saved to:\n-> {savedPdfPath}");
+}
+catch (OperationCanceledException)
+{
+    // Catches the specific cancellation exception when Ctrl+C is pressed
+    Console.WriteLine("\n\n[CANCELLED] Operation aborted. All temporary resources and files were nuked.");
+}
+catch (Exception ex)
+{
+    // If a single image fails, it hits this catch block
+    Console.WriteLine($"\n\n[FATAL ERROR]: Entire process nuked due to exception:\n{ex.Message}");
+}
 
 
 
@@ -489,134 +469,134 @@
 
 
 
-// FIFTH OFFICE MERGER
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
+// // FIFTH OFFICE MERGER
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("=================================================");
-Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
-Console.WriteLine("=================================================\n");
-Console.ResetColor();
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
 
-// 1. Define Paths & Modes
-string[] testFilePaths = new string[] 
-{
-    @"C:\Users\GERMANTATE\Downloads\part1.docx",
-    @"C:\Users\GERMANTATE\Downloads\part1.docx"
-}; 
+// // 1. Define Paths & Modes
+// string[] testFilePaths = new string[] 
+// {
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx",
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx"
+// }; 
 
-// IMPORTANT: The orchestrator requires the absolute path to LibreOffice
-string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
+// // IMPORTANT: The orchestrator requires the absolute path to LibreOffice
+// string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
 
-string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
-string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+// string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
 
-// NEW PARAMETER: 1 to Merge all files, 0 to convert and dump individually
-int mergeOption = 1; 
+// // NEW PARAMETER: 1 to Merge all files, 0 to convert and dump individually
+// int mergeOption = 0; 
 
-try
-{
-    // --- QUICK SANITY CHECK FOR TESTING ---
-    bool abort = false;
+// try
+// {
+//     // --- QUICK SANITY CHECK FOR TESTING ---
+//     bool abort = false;
 
-    if (!File.Exists(libreOfficePath))
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
-        Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
-        abort = true;
-    }
+//     if (!File.Exists(libreOfficePath))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Red;
+//         Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
+//         Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
+//         abort = true;
+//     }
 
-    var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
-    if (missingFiles.Any())
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("[WARNING] The following source files were not found:");
-        foreach (var missing in missingFiles)
-        {
-            Console.WriteLine($" -> {missing}");
-        }
-        Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
-        abort = true;
-    }
+//     var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
+//     if (missingFiles.Any())
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("[WARNING] The following source files were not found:");
+//         foreach (var missing in missingFiles)
+//         {
+//             Console.WriteLine($" -> {missing}");
+//         }
+//         Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
+//         abort = true;
+//     }
 
-    if (abort)
-    {
-        Console.ResetColor();
-        return;
-    }
+//     if (abort)
+//     {
+//         Console.ResetColor();
+//         return;
+//     }
 
-    // Ensure output directory exists before executing
-    if (!Directory.Exists(baseOutputDirectory))
-    {
-        Directory.CreateDirectory(baseOutputDirectory);
-    }
+//     // Ensure output directory exists before executing
+//     if (!Directory.Exists(baseOutputDirectory))
+//     {
+//         Directory.CreateDirectory(baseOutputDirectory);
+//     }
 
-    Console.WriteLine($"Processing {testFilePaths.Length} files...");
-    Console.WriteLine($"Gateway:     {libreOfficePath}");
-    Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
-    Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
-    Console.WriteLine("Status:      Spinning up headless conversion sandboxes...\n");
+//     Console.WriteLine($"Processing {testFilePaths.Length} files...");
+//     Console.WriteLine($"Gateway:     {libreOfficePath}");
+//     Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
+//     Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
+//     Console.WriteLine("Status:      Spinning up headless conversion sandboxes...\n");
 
-    // 2. Start Timer to track Beast Mode Speed
-    Stopwatch sw = Stopwatch.StartNew();
+//     // 2. Start Timer to track Beast Mode Speed
+//     Stopwatch sw = Stopwatch.StartNew();
 
-    // 3. EXECUTE THE ORCHESTRATOR (Now returns string[])
-    string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
-        inputPaths: testFilePaths, 
-        newFileName: desiredFileName,
-        filePathToSave: baseOutputDirectory, 
-        libreOfficeExePath: libreOfficePath,
-        mode: "docx-pdf",
-        merge: mergeOption // Passed here
-    );
+//     // 3. EXECUTE THE ORCHESTRATOR (Now returns string[])
+//     string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
+//         inputPaths: testFilePaths, 
+//         newFileName: desiredFileName,
+//         filePathToSave: baseOutputDirectory, 
+//         libreOfficeExePath: libreOfficePath,
+//         mode: "docx-pdf",
+//         merge: mergeOption // Passed here
+//     );
 
-    sw.Stop();
+//     sw.Stop();
 
-    // 4. Output Results
-    Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
+//     // 4. Output Results
+//     Console.WriteLine("✨ --- ORCHESTRATION COMPLETE --- ✨\n");
     
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
-    Console.ResetColor();
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
+//     Console.ResetColor();
 
-    // Print the inputs
-    Console.WriteLine("\n[SOURCE DOCUMENTS]:");
-    foreach (var path in testFilePaths)
-    {
-        Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
-    }
+//     // Print the inputs
+//     Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+//     foreach (var path in testFilePaths)
+//     {
+//         Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
+//     }
 
-    // Let the user know exactly where the safe files were generated
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
-    foreach (var savedPath in finalSavedPaths)
-    {
-        Console.WriteLine($"  OUT -> {savedPath}");
+//     // Let the user know exactly where the safe files were generated
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
+//     foreach (var savedPath in finalSavedPaths)
+//     {
+//         Console.WriteLine($"  OUT -> {savedPath}");
         
-        // Let the user know if the collision handler renamed something
-        if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
-        {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-        }
-    }
+//         // Let the user know if the collision handler renamed something
+//         if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
+//         {
+//             Console.ForegroundColor = ConsoleColor.DarkGray;
+//             Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
+//             Console.ForegroundColor = ConsoleColor.Cyan;
+//         }
+//     }
     
-    Console.ResetColor();
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
-    Console.WriteLine(ex.StackTrace);
-    Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
-    Console.ResetColor();
-}
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.WriteLine("\nNOTE: The volatile sandbox was automatically nuked to prevent system clutter.");
+//     Console.ResetColor();
+// }
 
 
 
