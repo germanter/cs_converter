@@ -469,167 +469,167 @@
 
 
 
-// FIFTH OFFICE MERGER
-// FIFTH OFFICE MERGER
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine("=================================================");
-Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
-Console.WriteLine("=================================================\n");
-Console.ResetColor();
+// // FIFTH OFFICE MERGER
+// using System;
+// using System.Diagnostics;
+// using System.IO;
+// using System.Linq;
+// using System.Threading;
+// using Orchestration; // Matches the namespace of your OfficeBatchToPdfMerger class
 
-// 1. Define Paths & Modes
-string[] testFilePaths = new string[] 
-{
-    @"C:\Users\GERMANTATE\Downloads\part1.docx",
-    @"C:\Users\GERMANTATE\Downloads\part1.docx" // Assumed part2 for testing purposes
-}; 
+// Console.ForegroundColor = ConsoleColor.Cyan;
+// Console.WriteLine("=================================================");
+// Console.WriteLine("   🚀 HIGH-TIER OFFICE -> PDF BATCH ORCHESTRATOR");
+// Console.WriteLine("=================================================\n");
+// Console.ResetColor();
 
-// IMPORTANT: The orchestrator requires the absolute path to LibreOffice
-string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
+// // 1. Define Paths & Modes
+// string[] testFilePaths = new string[] 
+// {
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx",
+//     @"C:\Users\GERMANTATE\Downloads\part1.docx" // Assumed part2 for testing purposes
+// }; 
 
-string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
-string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
+// // IMPORTANT: The orchestrator requires the absolute path to LibreOffice
+// string libreOfficePath = @"C:\Users\GERMANTATE\Documents\LibreOfficePortable\App\libreoffice\program\soffice.exe"; 
 
-// PARAMETER: 1 to Merge all files, 0 to convert and dump individually
-int mergeOption = 1; 
+// string baseOutputDirectory = Path.Combine(Directory.GetCurrentDirectory(), "MergedOutput");
+// string desiredFileName = "Master_Merged_Document"; // Used only if mergeOption == 1
 
-// --- NEW: CANCELLATION & PROGRESS SETUP ---
-using CancellationTokenSource cts = new CancellationTokenSource();
+// // PARAMETER: 1 to Merge all files, 0 to convert and dump individually
+// int mergeOption = 1; 
 
-// Wire up Ctrl+C to trigger the ZERO COMPROMISE nuke protocol
-Console.CancelKeyPress += (sender, e) =>
-{
-    Console.ForegroundColor = ConsoleColor.Magenta;
-    Console.WriteLine("\n\n[!] ABORT SIGNAL DETECTED (Ctrl+C). ENGAGING ZERO COMPROMISE NUKE PROTOCOL...");
-    Console.ResetColor();
+// // --- NEW: CANCELLATION & PROGRESS SETUP ---
+// using CancellationTokenSource cts = new CancellationTokenSource();
+
+// // Wire up Ctrl+C to trigger the ZERO COMPROMISE nuke protocol
+// Console.CancelKeyPress += (sender, e) =>
+// {
+//     Console.ForegroundColor = ConsoleColor.Magenta;
+//     Console.WriteLine("\n\n[!] ABORT SIGNAL DETECTED (Ctrl+C). ENGAGING ZERO COMPROMISE NUKE PROTOCOL...");
+//     Console.ResetColor();
     
-    cts.Cancel(); 
-    e.Cancel = true; // Prevent immediate crash so our cleanup logic runs
-};
+//     cts.Cancel(); 
+//     e.Cancel = true; // Prevent immediate crash so our cleanup logic runs
+// };
 
-// Wire up the progress reporter
-var progressReporter = new Progress<double>(percent =>
-{
-    Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.WriteLine($"[PROGRESS] Sandbox processing at: {percent:0.00}%");
-    Console.ResetColor();
-});
+// // Wire up the progress reporter
+// var progressReporter = new Progress<double>(percent =>
+// {
+//     Console.ForegroundColor = ConsoleColor.Yellow;
+//     Console.WriteLine($"[PROGRESS] Sandbox processing at: {percent:0.00}%");
+//     Console.ResetColor();
+// });
 
-try
-{
-    // --- QUICK SANITY CHECK FOR TESTING ---
-    bool abort = false;
+// try
+// {
+//     // --- QUICK SANITY CHECK FOR TESTING ---
+//     bool abort = false;
 
-    if (!File.Exists(libreOfficePath))
-    {
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
-        Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
-        abort = true;
-    }
+//     if (!File.Exists(libreOfficePath))
+//     {
+//         Console.ForegroundColor = ConsoleColor.Red;
+//         Console.WriteLine($"[FATAL] LibreOffice executable not found at: {libreOfficePath}");
+//         Console.WriteLine("Please update 'libreOfficePath' to point to your local soffice.exe installation.\n");
+//         abort = true;
+//     }
 
-    var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
-    if (missingFiles.Any())
-    {
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("[WARNING] The following source files were not found:");
-        foreach (var missing in missingFiles)
-        {
-            Console.WriteLine($" -> {missing}");
-        }
-        Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
-        abort = true;
-    }
+//     var missingFiles = testFilePaths.Where(path => !File.Exists(path)).ToList();
+//     if (missingFiles.Any())
+//     {
+//         Console.ForegroundColor = ConsoleColor.Yellow;
+//         Console.WriteLine("[WARNING] The following source files were not found:");
+//         foreach (var missing in missingFiles)
+//         {
+//             Console.WriteLine($" -> {missing}");
+//         }
+//         Console.WriteLine("\nPlease update the 'testFilePaths' array to point to real files on your computer.");
+//         abort = true;
+//     }
 
-    if (abort)
-    {
-        Console.ResetColor();
-        return;
-    }
+//     if (abort)
+//     {
+//         Console.ResetColor();
+//         return;
+//     }
 
-    // Ensure output directory exists before executing
-    if (!Directory.Exists(baseOutputDirectory))
-    {
-        Directory.CreateDirectory(baseOutputDirectory);
-    }
+//     // Ensure output directory exists before executing
+//     if (!Directory.Exists(baseOutputDirectory))
+//     {
+//         Directory.CreateDirectory(baseOutputDirectory);
+//     }
 
-    Console.WriteLine($"Processing {testFilePaths.Length} files...");
-    Console.WriteLine($"Gateway:     {libreOfficePath}");
-    Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
-    Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
-    Console.WriteLine("Status:      Spinning up headless conversion sandboxes...");
-    Console.WriteLine("Note:        Press [Ctrl+C] at any time to abort and NUKE all temporary/partial files.\n");
+//     Console.WriteLine($"Processing {testFilePaths.Length} files...");
+//     Console.WriteLine($"Gateway:     {libreOfficePath}");
+//     Console.WriteLine($"Target Dir:  {baseOutputDirectory}");
+//     Console.WriteLine($"Merge Mode:  {(mergeOption == 1 ? $"ON (Target: {desiredFileName}.pdf)" : "OFF (Individual Dumps)")}");
+//     Console.WriteLine("Status:      Spinning up headless conversion sandboxes...");
+//     Console.WriteLine("Note:        Press [Ctrl+C] at any time to abort and NUKE all temporary/partial files.\n");
 
-    // 2. Start Timer to track Beast Mode Speed
-    Stopwatch sw = Stopwatch.StartNew();
+//     // 2. Start Timer to track Beast Mode Speed
+//     Stopwatch sw = Stopwatch.StartNew();
 
-    // 3. EXECUTE THE ORCHESTRATOR (Now with Progress & Cancellation)
-    string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
-        inputPaths: testFilePaths, 
-        newFileName: desiredFileName,
-        filePathToSave: baseOutputDirectory, 
-        libreOfficeExePath: libreOfficePath,
-        mode: "docx-pdf",
-        merge: mergeOption,
-        progress: progressReporter,       // <- NEW
-        cancellationToken: cts.Token      // <- NEW
-    );
+//     // 3. EXECUTE THE ORCHESTRATOR (Now with Progress & Cancellation)
+//     string[] finalSavedPaths = OfficeBatchToPdfMerger.ConvertAndMerge(
+//         inputPaths: testFilePaths, 
+//         newFileName: desiredFileName,
+//         filePathToSave: baseOutputDirectory, 
+//         libreOfficeExePath: libreOfficePath,
+//         mode: "docx-pdf",
+//         merge: mergeOption,
+//         progress: progressReporter,       // <- NEW
+//         cancellationToken: cts.Token      // <- NEW
+//     );
 
-    sw.Stop();
+//     sw.Stop();
 
-    // 4. Output Results
-    Console.WriteLine("\n✨ --- ORCHESTRATION COMPLETE --- ✨\n");
+//     // 4. Output Results
+//     Console.WriteLine("\n✨ --- ORCHESTRATION COMPLETE --- ✨\n");
     
-    Console.ForegroundColor = ConsoleColor.Green;
-    Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
-    Console.ResetColor();
+//     Console.ForegroundColor = ConsoleColor.Green;
+//     Console.WriteLine($"✅ Successfully processed {testFilePaths.Length} document(s) structurally in {sw.ElapsedMilliseconds} ms!");
+//     Console.ResetColor();
 
-    // Print the inputs
-    Console.WriteLine("\n[SOURCE DOCUMENTS]:");
-    foreach (var path in testFilePaths)
-    {
-        Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
-    }
+//     // Print the inputs
+//     Console.WriteLine("\n[SOURCE DOCUMENTS]:");
+//     foreach (var path in testFilePaths)
+//     {
+//         Console.WriteLine($"  IN  <- {Path.GetFileName(path)}");
+//     }
 
-    // Let the user know exactly where the safe files were generated
-    Console.ForegroundColor = ConsoleColor.Cyan;
-    Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
-    foreach (var savedPath in finalSavedPaths)
-    {
-        Console.WriteLine($"  OUT -> {savedPath}");
+//     // Let the user know exactly where the safe files were generated
+//     Console.ForegroundColor = ConsoleColor.Cyan;
+//     Console.WriteLine($"\n[FINAL DESTINATION(S)]:");
+//     foreach (var savedPath in finalSavedPaths)
+//     {
+//         Console.WriteLine($"  OUT -> {savedPath}");
         
-        // Let the user know if the collision handler renamed something
-        if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
-        {
-            Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
-            Console.ForegroundColor = ConsoleColor.Cyan;
-        }
-    }
+//         // Let the user know if the collision handler renamed something
+//         if (mergeOption == 1 && Path.GetFileName(savedPath) != $"{desiredFileName}.pdf")
+//         {
+//             Console.ForegroundColor = ConsoleColor.DarkGray;
+//             Console.WriteLine($"         (Note: Filename auto-adjusted by collision handler)");
+//             Console.ForegroundColor = ConsoleColor.Cyan;
+//         }
+//     }
     
-    Console.ResetColor();
-}
-catch (OperationCanceledException) // --- NEW: Catching the intentional Nuke ---
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine("\n💥 [ABORTED] Operation was cancelled by user. ALL traces and partial files have been NUKED. Zero compromise.");
-    Console.ResetColor();
-}
-catch (Exception ex)
-{
-    Console.ForegroundColor = ConsoleColor.Red;
-    Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
-    Console.WriteLine(ex.StackTrace);
-    Console.WriteLine("\nNOTE: The volatile sandbox and any partial outputs were automatically nuked.");
-    Console.ResetColor();
-}
+//     Console.ResetColor();
+// }
+// catch (OperationCanceledException) // --- NEW: Catching the intentional Nuke ---
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine("\n💥 [ABORTED] Operation was cancelled by user. ALL traces and partial files have been NUKED. Zero compromise.");
+//     Console.ResetColor();
+// }
+// catch (Exception ex)
+// {
+//     Console.ForegroundColor = ConsoleColor.Red;
+//     Console.WriteLine($"\n❌ [CRITICAL SYSTEM FAILURE]: {ex.Message}");
+//     Console.WriteLine(ex.StackTrace);
+//     Console.WriteLine("\nNOTE: The volatile sandbox and any partial outputs were automatically nuked.");
+//     Console.ResetColor();
+// }
 
 
 
