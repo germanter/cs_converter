@@ -268,20 +268,7 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// new code
+/// WRAPPED NEW
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -295,7 +282,7 @@ using PdfEngine;
 using PdfUtilities;
 using Orchestration;
 using Glo;
-
+using AppLogger; // Added for the Logger
 
 namespace CentralGateway
 {
@@ -304,8 +291,6 @@ namespace CentralGateway
         /// <summary>
         /// DRY Helper to validate file extensions rigidly.
         /// </summary>
-        
-        // Global static variable accessible from any script in the application
         private static bool AreExtensionsValid(IEnumerable<string> filePaths, string[] allowedExtensions)
         {
             foreach (var path in filePaths)
@@ -320,6 +305,30 @@ namespace CentralGateway
             return true;
         }
 
+        /// <summary>
+        /// DRY Helper for the Logger to determine if it should return a single file path or a parent directory.
+        /// </summary>
+        private static string GetLogPath(IEnumerable<string> paths)
+        {
+            if (paths == null) return "";
+            
+            var list = paths.ToList();
+            if (list.Count == 0) return "";
+            
+            // If it's a single file, return the full path
+            if (list.Count == 1) return list[0]; 
+
+            // If multiple files, return the parent folder path (ensuring it has a trailing slash for aesthetics)
+            string directory = Path.GetDirectoryName(list[0]) ?? "";
+            if (!string.IsNullOrEmpty(directory) && 
+                !directory.EndsWith(Path.DirectorySeparatorChar.ToString()) && 
+                !directory.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
+            {
+                directory += Path.DirectorySeparatorChar;
+            }
+            return directory;
+        }
+
         public static async Task<string> Image2PdfCallerAsync(
             List<ImageInput> images,
             string saveDirectory,
@@ -332,22 +341,22 @@ namespace CentralGateway
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            // --- CONFIGURABLE VARIABLES ---
+            string taskType = "image2pdf";
             string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".ico", ".bmp", ".tiff", ".tif", ".tga", ".psd" };
             string errUnsupportedType = "unsupported image type";
             string errEngine = "internal engine error";
-            // ------------------------------
 
             // Lightweight validation runs instantly on the calling UI thread
             if (!AreExtensionsValid(images.Select(img => img.FilePath), allowedExtensions))
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errUnsupportedType);
             }
 
             try
             {
                 // UI Thread Yields Instantly: Handoff heavy processing to the thread-pool
-                return await Task.Run(() => ImageToPdfEngine.ConvertToPdf(
+                string result = await Task.Run(() => ImageToPdfEngine.ConvertToPdf(
                     images: images,
                     saveDirectory: saveDirectory,
                     filename: filename,
@@ -359,13 +368,18 @@ namespace CentralGateway
                     progress: progress,
                     cancellationToken: cancellationToken
                 ), cancellationToken);
+
+                if (Vars.openLog) Logger.Log(taskType, result, "success"); // result is a single string here
+                return result;
             }
             catch (OperationCanceledException)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw; // Bubble up intentional user cancellations unchanged natively
             }
             catch (Exception)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errEngine);
             }
         }
@@ -377,22 +391,19 @@ namespace CentralGateway
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            // --- CONFIGURABLE VARIABLES ---
+            string taskType = "imageconverter";
             string[] allowedExtensions = { ".jpg", ".jpeg", ".ico", ".png", ".webp", ".bmp", ".tiff", ".tif" };
             string errUnsupportedType = "unsupported image type";
             string errEngine = "internal engine error";
-            // ------------------------------
 
-            // Lightweight validation runs instantly
             if (!AreExtensionsValid(sourceImages, allowedExtensions))
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errUnsupportedType);
             }
 
             try
             {
-                // UltimateImageConverter natively handles async logic, so we just await it directly.
-                // The UI yields smoothly here.
                 var result = await UltimateImageConverter.ConvertImagesAsync(
                     sourceImages,
                     targetFormat,
@@ -401,14 +412,17 @@ namespace CentralGateway
                     cancellationToken
                 );
 
+                if (Vars.openLog) Logger.Log(taskType, GetLogPath(result), "success");
                 return result;
             }
             catch (OperationCanceledException)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw;
             }
             catch (Exception)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errEngine);
             }
         }
@@ -422,10 +436,9 @@ namespace CentralGateway
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            // --- CONFIGURABLE VARIABLES ---
+            string taskType = "office2pdf";
             string errHomogeneity = "homogenity error";
             string errEngine = "internal engine error";
-            // ------------------------------
 
             string expectedExtension = mode == "docx-pdf" ? ".docx" : 
                                        mode == "pptx-pdf" ? ".pptx" : 
@@ -433,23 +446,23 @@ namespace CentralGateway
 
             if (string.IsNullOrEmpty(expectedExtension))
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errHomogeneity);
             }
 
-            // Strict Homogeneity Enforcer - runs efficiently on the UI thread
             bool isHomogeneous = inputPaths.All(path => 
                 !string.IsNullOrWhiteSpace(path) && 
                 Path.GetExtension(path).Equals(expectedExtension, StringComparison.OrdinalIgnoreCase));
 
             if (!isHomogeneous)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errHomogeneity);
             }
 
             try
             {
-                // Background worker thread intercepts the heavy processing execution
-                return await Task.Run(() => OfficeBatchToPdfMerger.ConvertAndMerge(
+                string[] result = await Task.Run(() => OfficeBatchToPdfMerger.ConvertAndMerge(
                     inputPaths: inputPaths,
                     newFileName: newFileName,
                     filePathToSave: filePathToSave,
@@ -459,13 +472,18 @@ namespace CentralGateway
                     progress: progress,
                     cancellationToken: cancellationToken
                 ), cancellationToken);
+
+                if (Vars.openLog) Logger.Log(taskType, GetLogPath(result), "success");
+                return result;
             }
             catch (OperationCanceledException)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw;
             }
             catch (Exception)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errEngine);
             }
         }
@@ -478,22 +496,20 @@ namespace CentralGateway
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            // --- CONFIGURABLE VARIABLES ---
+            string taskType = "pdf2image";
             string[] allowedExtensions = { ".pdf" };
             string errNoPdf = "no pdf error";
             string errEngine = "internal engine error";
-            // ------------------------------
 
-            // Lightweight validation
             if (!AreExtensionsValid(new[] { pdfPath }, allowedExtensions))
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errNoPdf);
             }
 
             try
             {
-                // Exception Unrolling happens beautifully when internal engines bubble up out of Task.Run
-                return await Task.Run(() => PdfToImageConverter.ConvertPdfToImages(
+                var result = await Task.Run(() => PdfToImageConverter.ConvertPdfToImages(
                     pdfPath: pdfPath,
                     outputPath: outputPath,
                     dpi: dpi,
@@ -501,13 +517,18 @@ namespace CentralGateway
                     progress: progress,
                     cancellationToken: cancellationToken
                 ), cancellationToken);
+
+                if (Vars.openLog) Logger.Log(taskType, GetLogPath(result), "success");
+                return result;
             }
             catch (OperationCanceledException)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw;
             }
             catch (Exception)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errEngine);
             }
         }
@@ -519,35 +540,38 @@ namespace CentralGateway
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            // --- CONFIGURABLE VARIABLES ---
+            string taskType = "pdfmerger";
             string[] allowedExtensions = { ".pdf" };
             string errNoPdf = "no pdf error";
             string errEngine = "internal engine error";
-            // ------------------------------
 
-            // Lightweight validation
             if (!AreExtensionsValid(pdfPaths, allowedExtensions))
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errNoPdf);
             }
 
             try
             {
-                // Yield the UI thread immediately; merge heavy PDFs in the background
-                return await Task.Run(() => PdfMerger.Merge(
+                string result = await Task.Run(() => PdfMerger.Merge(
                     pdfPaths: pdfPaths,
                     filePathToSave: filePathToSave,
                     newFileName: newFileName,
                     progress: progress,
                     cancellationToken: cancellationToken
                 ), cancellationToken);
+
+                if (Vars.openLog) Logger.Log(taskType, result, "success"); // single string returned natively
+                return result;
             }
             catch (OperationCanceledException)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw;
             }
             catch (Exception)
             {
+                if (Vars.openLog) Logger.Log(taskType, "", "fail");
                 throw new Exception(errEngine);
             }
         }

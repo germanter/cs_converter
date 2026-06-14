@@ -18,7 +18,7 @@ namespace DesktopEngine.Sys
             // =================================================================
             // ENGINE CONFIGURATION ZONE
             // =================================================================
-            int maxCpuFlatlineSeconds = 12; // 12s is the gold standard for heavy files vs ghost locks.
+            int maxCpuFlatlineSeconds = 20; // 12s is the gold standard for heavy files vs ghost locks.
             // =================================================================
 
             // 1. Guardrails: Verify structural dependencies before drawing power

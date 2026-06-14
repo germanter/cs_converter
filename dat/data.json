@@ -5,5 +5,103 @@
     "text": null
   },
   "logs": [
+    {
+      "uuid": "01ad44f2",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 19:20:12701"
+    },
+    {
+      "uuid": "80c7f618",
+      "type": "office2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-14 19:20:01225"
+    },
+    {
+      "uuid": "97c4d69d",
+      "type": "office2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-14 17:27:03271"
+    },
+    {
+      "uuid": "0c8741fb",
+      "type": "office2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-14 17:27:00480"
+    },
+    {
+      "uuid": "1fe8119e",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 17:19:14764"
+    },
+    {
+      "uuid": "8985c59b",
+      "type": "office2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-14 17:16:42069"
+    },
+    {
+      "uuid": "840751fc",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc_4.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 17:12:01219"
+    },
+    {
+      "uuid": "bd24b6b2",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 17:05:19563"
+    },
+    {
+      "uuid": "b3371e7b",
+      "type": "office2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-14 17:05:07744"
+    },
+    {
+      "uuid": "1cdb683a",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 17:04:27089"
+    },
+    {
+      "uuid": "7111c84a",
+      "type": "office2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-14 17:04:16945"
+    },
+    {
+      "uuid": "81a9bfc8",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\",
+      "status": "success",
+      "timestamp": "2026-06-14 16:53:25392"
+    },
+    {
+      "uuid": "51787aec",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc_3.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 16:52:51695"
+    },
+    {
+      "uuid": "404e6b95",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc_2.pdf",
+      "status": "success",
+      "timestamp": "2026-06-14 16:52:21005"
+    }
   ]
 }
