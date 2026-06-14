@@ -9,6 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+
+  <AvaloniaResource Include="s_assets\**" />
+
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.10" />
     <PackageReference Include="Clippit" Version="3.4.6" />
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
