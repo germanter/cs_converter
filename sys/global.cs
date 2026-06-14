@@ -13,5 +13,11 @@ namespace Glo
         public static string dataDIR = @"C:\Users\GERMANTATE\Desktop\sideProjects\cs_convx\dat\data.json";
         public static bool openLog = true;
 
+        public static string baseBGcolor = "";
+        public static string baseTEXTcolor = "";
+
+        public static string BGcolor = "";
+        public static string TEXTcolor = "";
+
     }
 }
