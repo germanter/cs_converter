@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,21 +8,45 @@ using System.Threading;
 using System.Threading.Tasks;
 using Glo; // Strict constraint: Reaching Glo.Vars.dataDIR
 
-namespace WriterHead // Change this to your actual namespace
+namespace WriterHead
 {
     public static class Writer
     {
-        // 3 Operational Modes
-        private enum WriteMode { Mode1_Nuke, Mode2_Log, Mode3_Settings }
+        // === CONFIGURABLE DEFAULTS AT TOP ===
+        public static readonly string DefaultFullJson = @"{
+  ""sys"": {
+    ""openLog"": true,
+    ""bg"": ""#1E1E1E"",
+    ""text"": ""#FFFFFF""
+  },
+  ""logs"": []
+}";
+
+        public static readonly string DefaultSysJson = @"{
+  ""openLog"": true,
+    ""bg"": ""#1E1E1E"",
+    ""text"": ""#FFFFFF""
+}";
+
+        // 5 Operational Modes
+        private enum WriteMode
+        {
+            Mode1_Nuke,
+            Mode2_Log,
+            Mode3_Settings,
+            Mode4_NukeSys,
+            Mode5_NukeLogs
+        }
 
         // The internal "Promise" Job class
         private class Job
         {
             public WriteMode Mode { get; set; }
-            public object? LogEntry { get; set; }     // Nullable to fix CS8618
-            public string? SysKey { get; set; }       // Nullable to fix CS8618
-            public object? SysValue { get; set; }     // Nullable to fix CS8618
-            public TaskCompletionSource<string> Tcs { get; set; } = null!; // Initialized to fix CS8618
+            public object? LogEntry { get; set; }     
+            public string? SysKey { get; set; }       
+            public object? SysValue { get; set; }     
+            public List<string>? WhereList { get; set; }
+            public TaskCompletionSource<string> Tcs { get; set; } = null!; 
         }
 
         // Gatekeeper control mechanisms
@@ -32,7 +57,6 @@ namespace WriterHead // Change this to your actual namespace
 
         /// <summary>
         /// MODE 1: ROOT LEVEL PRIORITY. Wipes data.json entirely and defaults it.
-        /// Stops whatever writer is doing right now and clears all promises.
         /// </summary>
         public static Task<string> Mode1_NukeDataAsync()
         {
@@ -76,6 +100,36 @@ namespace WriterHead // Change this to your actual namespace
             return job.Tcs.Task;
         }
 
+        /// <summary>
+        /// MODE 4: Defaults ONLY the "sys" object back to DefaultSysJson, leaves logs alone.
+        /// </summary>
+        public static Task<string> Mode4_NukeSysAsync()
+        {
+            var job = new Job
+            {
+                Mode = WriteMode.Mode4_NukeSys,
+                Tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously)
+            };
+            EnqueueStandardJob(job);
+            return job.Tcs.Task;
+        }
+
+        /// <summary>
+        /// MODE 5: Deletes logs. If "where" is empty/null, nukes ALL logs. 
+        /// If "where" contains UUIDs, removes only those specific logs.
+        /// </summary>
+        public static Task<string> Mode5_NukeLogsAsync(List<string>? where = null)
+        {
+            var job = new Job
+            {
+                Mode = WriteMode.Mode5_NukeLogs,
+                WhereList = where,
+                Tcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously)
+            };
+            EnqueueStandardJob(job);
+            return job.Tcs.Task;
+        }
+
         // --- INTERNAL GATEKEEPER LOGIC ---
 
         private static void EnqueueStandardJob(Job job)
@@ -95,11 +149,11 @@ namespace WriterHead // Change this to your actual namespace
         {
             lock (_lock)
             {
-                // STOP WHATEVER IS GOING ON: Cancel the active write operation
+                // STOP WHATEVER IS GOING ON
                 _cts.Cancel();
                 _cts = new CancellationTokenSource();
 
-                // PROMISES ALL CLEARED: Nuke the queue entirely without completion
+                // PROMISES ALL CLEARED
                 while (_queue.Count > 0)
                 {
                     var pending = _queue.Dequeue();
@@ -132,83 +186,111 @@ namespace WriterHead // Change this to your actual namespace
                         return;
                     }
                     currentJob = _queue.Dequeue();
-                    token = _cts.Token; // Capture token to respect Mode 1 cancellations
+                    token = _cts.Token; 
                 }
 
                 try
                 {
                     // === CONSTRAINT ENFORCEMENT START ===
-                    // Does it exist? Is it empty? Don't fix, don't create, don't scream. 
+                    // File check: Does it exist? Don't create, don't scream. 
                     if (string.IsNullOrEmpty(Vars.dataDIR) || !File.Exists(Vars.dataDIR))
                     {
                         currentJob.Tcs.TrySetResult("data.json is not defined");
                         continue; 
                     }
-                    // === CONSTRAINT ENFORCEMENT END ===
 
+                    // Mode 1: Ultimate priority. No read needed. Just wipe it clean.
                     if (currentJob.Mode == WriteMode.Mode1_Nuke)
                     {
-                        string defaultJson = @"{
-  ""sys"": {
-    ""openLog"": true,
-    ""bg"": null,
-    ""text"": null
-  },
-  ""logs"": [
-  ]
-}";
-                        await File.WriteAllTextAsync(Vars.dataDIR, defaultJson, token);
+                        await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
+                        currentJob.Tcs.TrySetResult("success");
+                        continue;
                     }
-                    else if (currentJob.Mode == WriteMode.Mode2_Log)
-                    {
-                        string json = await File.ReadAllTextAsync(Vars.dataDIR, token);
-                        
-                        // Fix for CS8600 & CS8602: Accept nullable return and check it.
-                        JsonNode? root = JsonNode.Parse(json);
-                        if (root == null) throw new InvalidOperationException("Parsed JSON is entirely null");
-                        
-                        JsonArray logs = root["logs"]?.AsArray() ?? new JsonArray();
-                        
-                        // Insert at index 0 (Pastes on top of logs [])
-                        logs.Insert(0, JsonSerializer.SerializeToNode(currentJob.LogEntry));
 
-                        var options = new JsonSerializerOptions { WriteIndented = true };
-                        await File.WriteAllTextAsync(Vars.dataDIR, root.ToJsonString(options), token);
+                    // For all other modes, read and validate the JSON.
+                    string json = await File.ReadAllTextAsync(Vars.dataDIR, token);
+                    
+                    // If file is entirely empty, this triggers the corruption fallback
+                    if (string.IsNullOrWhiteSpace(json)) 
+                        throw new InvalidDataException("Empty File"); 
+
+                    JsonNode? root = JsonNode.Parse(json);
+                    
+                    // If file is not valid JSON, this triggers the corruption fallback
+                    if (root == null) 
+                        throw new InvalidDataException("Null JSON");
+
+                    // Schema validation: If the user messed with the architecture, trigger corruption fallback
+                    if (!(root["sys"] is JsonObject sys)) throw new InvalidDataException("Broken sys schema");
+                    if (!(root["logs"] is JsonArray logs)) throw new InvalidDataException("Broken logs schema");
+
+                    // Execute Modes
+                    if (currentJob.Mode == WriteMode.Mode2_Log)
+                    {
+                        logs.Insert(0, JsonSerializer.SerializeToNode(currentJob.LogEntry));
                     }
                     else if (currentJob.Mode == WriteMode.Mode3_Settings)
                     {
-                        string json = await File.ReadAllTextAsync(Vars.dataDIR, token);
-                        
-                        // Fix for CS8600 & CS8602: Accept nullable return and check it.
-                        JsonNode? root = JsonNode.Parse(json);
-                        if (root == null) throw new InvalidOperationException("Parsed JSON is entirely null");
-                        
-                        JsonObject sys = root["sys"]?.AsObject() ?? new JsonObject();
-                        
-                        // Only updates 1 given setting (safe access to SysKey)
                         if (currentJob.SysKey != null)
                         {
                             sys[currentJob.SysKey] = JsonSerializer.SerializeToNode(currentJob.SysValue);
                         }
-
-                        var options = new JsonSerializerOptions { WriteIndented = true };
-                        await File.WriteAllTextAsync(Vars.dataDIR, root.ToJsonString(options), token);
+                    }
+                    else if (currentJob.Mode == WriteMode.Mode4_NukeSys)
+                    {
+                        root["sys"] = JsonNode.Parse(DefaultSysJson);
+                    }
+                    else if (currentJob.Mode == WriteMode.Mode5_NukeLogs)
+                    {
+                        if (currentJob.WhereList == null || currentJob.WhereList.Count == 0)
+                        {
+                            // Truncate entirely
+                            root["logs"] = new JsonArray();
+                        }
+                        else
+                        {
+                            // Target specific UUIDs. Loop backwards to safely remove elements.
+                            for (int i = logs.Count - 1; i >= 0; i--)
+                            {
+                                var node = logs[i];
+                                // STRICT CONSTRAINT: Check ONLY for "uuid", no fallback to "id"
+                                if (node is JsonObject obj && obj.TryGetPropertyValue("uuid", out var uuidNode))
+                                {
+                                    string? uuidStr = uuidNode?.ToString();
+                                    if (uuidStr != null && currentJob.WhereList.Contains(uuidStr))
+                                    {
+                                        logs.RemoveAt(i);
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    // STRICT CONSTRAINT: "if you complete job correctly , just return 'success' thats it"
+                    // Write successfully executed manipulations back to file
+                    var options = new JsonSerializerOptions { WriteIndented = true };
+                    await File.WriteAllTextAsync(Vars.dataDIR, root.ToJsonString(options), token);
+
                     currentJob.Tcs.TrySetResult("success");
                 }
                 catch (OperationCanceledException)
                 {
-                    // Mode 1 nuked this job while it was actively reading/writing. Clear the promise.
+                    // Mode 1 nuked this job while it was actively working.
                     currentJob.Tcs.TrySetCanceled();
                 }
                 catch (Exception)
                 {
-                    // STRICT CONSTRAINT: "no superhero shit"
-                    // If parsing corrupted JSON fails (or if we threw InvalidOperationException above),
-                    // it does not fix it or crash. Exits silently with simple error string.
-                    currentJob.Tcs.TrySetResult("error");
+                    // =========================================================
+                    // EXTREME PROTOCOL LEVEL IMPORTANCE: CORRUPTION FALLBACK
+                    // Any error above (empty, parse fail, schema break) lands here.
+                    // DO NOT EXECUTE THE GIVEN ACTUAL TASK. JUST NUKE IT AND MOVE AWAY.
+                    // =========================================================
+                    try
+                    {
+                        await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
+                    }
+                    catch { } // No superhero shit. If we can't write, silently walk away.
+
+                    currentJob.Tcs.TrySetResult("success");
                 }
             }
         }
