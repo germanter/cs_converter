@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Glo;
 
@@ -9,80 +10,76 @@ namespace convix
 {
     public static class TaskListHelper
     {
-        /// <summary>
-        /// Reads the JSON snapshot in the background, extracts the logs based on the mapped category name, 
-        /// and returns the successful tasks' fullPath and uuid. 
-        /// If ANY error happens, it silently crashes and returns the word "fail".
-        /// </summary>
-        public static async Task<(string Status, List<(string FullPath, string Uuid)> Tasks)> GetCompletedTasksAsync(string categoryName, string jsonSnapshot)
+        public static async Task<(string Status, List<(string FullPath, string Uuid)> Tasks)> GetCompletedTasksAsync(string categoryName, string jsonSnapshot, CancellationToken ct = default)
         {
+            // FIX: Avoid huge allocation dumps on null hits
+            if (string.IsNullOrWhiteSpace(jsonSnapshot) || string.IsNullOrWhiteSpace(categoryName))
+                return ("fail", new List<(string, string)>(0)); 
+
+            // FIX: Prevent devastating process crash if dictionary is null
+            if (Vars.ctgMap == null || !Vars.ctgMap.TryGetValue(categoryName, out string? mappedCategory) || mappedCategory == null)
+                return ("fail", new List<(string, string)>(0));
+
             return await Task.Run(() =>
             {
                 try
                 {
-                    // 1. Map the UI category name to the internal data name (e.g., Image2PDF -> image2pdf)
-                    if (!Vars.ctgMap.TryGetValue(categoryName, out string? mappedCategory) || mappedCategory == null)
-                    {
-                        return ("fail", new List<(string FullPath, string Uuid)>());
-                    }
+                    if (ct.IsCancellationRequested) return ("fail", new List<(string, string)>(0));
 
-                    // 2. Parse the JSON snapshot
                     using JsonDocument doc = JsonDocument.Parse(jsonSnapshot);
                     
-                    // 3. Find the "logs" array
                     if (!doc.RootElement.TryGetProperty("logs", out JsonElement logsElement) || logsElement.ValueKind != JsonValueKind.Array)
-                    {
-                        return ("fail", new List<(string FullPath, string Uuid)>());
-                    }
+                        return ("fail", new List<(string, string)>(0));
 
-                    var results = new List<(string FullPath, string Uuid)>();
+                    // OPTIMIZATION: Extract exact buffer size to stop memory fragmentation reallocating
+                    var results = new List<(string FullPath, string Uuid)>(logsElement.GetArrayLength());
 
-                    // 4. Iterate over the logs array
                     foreach (JsonElement logItem in logsElement.EnumerateArray())
                     {
-                        // Grab type and status safely (Strictly lower-case keys based on data.json)
+                        if (ct.IsCancellationRequested) break;
+
                         string type = logItem.TryGetProperty("type", out JsonElement typeElement) ? typeElement.GetString() ?? "" : "";
                         string status = logItem.TryGetProperty("status", out JsonElement statusElement) ? statusElement.GetString() ?? "" : "";
 
-                        // Filter by type (mappedCategory) AND status ("success")
-                        if (type == mappedCategory && status == "success")
+                        // OPTIMIZATION: Direct memory lookup logic via Ordinal avoids slow CPU cultural string comparisons
+                        if (string.Equals(type, mappedCategory, StringComparison.Ordinal) && 
+                            string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
                         {
-                            // Try to get fullpath and uuid (Must be exactly "fullpath" to match data.json!)
                             string fullPath = logItem.TryGetProperty("fullpath", out JsonElement fpElement) ? fpElement.GetString() ?? "" : "";
                             string uuid = logItem.TryGetProperty("uuid", out JsonElement uuidElement) ? uuidElement.GetString() ?? "" : "";
-
-                            results.Add((fullPath, uuid));
+                            
+                            // FIX: Prevent ghosts pushing invalid UI lines
+                            if (!string.IsNullOrEmpty(uuid) && !string.IsNullOrEmpty(fullPath)) 
+                                results.Add((fullPath, uuid));
                         }
                     }
 
+                    results.TrimExcess(); // OPTIMIZATION: Purge bloated memory left from the initial buffer size
                     return ("success", results);
                 }
                 catch
                 {
-                    // Silently crash and return the "fail" word
-                    return ("fail", new List<(string FullPath, string Uuid)>());
+                    return ("fail", new List<(string, string)>(0));
                 }
-            });
+            }, ct); // FIX: Bound CancellationToken immediately handles memory correctly
         }
 
-        /// <summary>
-        /// Tries to delete a file exactly ONCE in the background. 
-        /// </summary>
         public static async Task DeleteFileAsync(string filePath)
         {
+            if (string.IsNullOrWhiteSpace(filePath)) return;
+
             await Task.Run(() =>
             {
                 try
                 {
-                    if (File.Exists(filePath))
+                    if (File.Exists(filePath)) 
                     {
+                        // FIX: Safely override ReadOnly attribute which ordinarily throws UnauthorizedAccessException 
+                        File.SetAttributes(filePath, FileAttributes.Normal);
                         File.Delete(filePath);
                     }
                 }
-                catch
-                {
-                    // Don't care, don't try again, don't scream. Just walk away.
-                }
+                catch { /* FIX: Walk away silently */ }
             });
         }
     }

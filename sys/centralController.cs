@@ -93,7 +93,7 @@ namespace CentralGateway
                 // Lightweight validation runs instantly on the calling UI thread
                 if (!AreExtensionsValid(images.Select(img => img.FilePath), allowedExtensions))
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errUnsupportedType);
                 }
 
@@ -113,17 +113,17 @@ namespace CentralGateway
                         cancellationToken: cancellationToken
                     ), cancellationToken);
 
-                    if (Vars.openLog) Logger.Log(taskType, result, "success"); // result is a single string here
+                    Logger.Log(taskType, result, "success"); // result is a single string here
                     return result;
                 }
                 catch (OperationCanceledException)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw; // Bubble up intentional user cancellations unchanged natively
                 }
                 catch (Exception)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errEngine);
                 }
             }
@@ -152,7 +152,7 @@ namespace CentralGateway
 
                 if (!AreExtensionsValid(sourceImages, allowedExtensions))
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errUnsupportedType);
                 }
 
@@ -166,17 +166,17 @@ namespace CentralGateway
                         cancellationToken
                     );
 
-                    if (Vars.openLog) Logger.Log(taskType, GetLogPath(result), "success");
+                    Logger.Log(taskType, GetLogPath(result), "success");
                     return result;
                 }
                 catch (OperationCanceledException)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw;
                 }
                 catch (Exception)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errEngine);
                 }
             }
@@ -210,7 +210,7 @@ namespace CentralGateway
 
                 if (string.IsNullOrEmpty(expectedExtension))
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errHomogeneity);
                 }
 
@@ -220,7 +220,7 @@ namespace CentralGateway
 
                 if (!isHomogeneous)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errHomogeneity);
                 }
 
@@ -237,17 +237,17 @@ namespace CentralGateway
                         cancellationToken: cancellationToken
                     ), cancellationToken);
 
-                    if (Vars.openLog) Logger.Log(taskType, GetLogPath(result), "success");
+                    Logger.Log(taskType, GetLogPath(result), "success");
                     return result;
                 }
                 catch (OperationCanceledException)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw;
                 }
                 catch (Exception)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errEngine);
                 }
             }
@@ -277,7 +277,7 @@ namespace CentralGateway
 
                 if (!AreExtensionsValid(new[] { pdfPath }, allowedExtensions))
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errNoPdf);
                 }
 
@@ -292,17 +292,17 @@ namespace CentralGateway
                         cancellationToken: cancellationToken
                     ), cancellationToken);
 
-                    if (Vars.openLog) Logger.Log(taskType, GetLogPath(result), "success");
+                    Logger.Log(taskType, GetLogPath(result), "success");
                     return result;
                 }
                 catch (OperationCanceledException)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw;
                 }
                 catch (Exception)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errEngine);
                 }
             }
@@ -331,7 +331,7 @@ namespace CentralGateway
 
                 if (!AreExtensionsValid(pdfPaths, allowedExtensions))
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errNoPdf);
                 }
 
@@ -345,17 +345,17 @@ namespace CentralGateway
                         cancellationToken: cancellationToken
                     ), cancellationToken);
 
-                    if (Vars.openLog) Logger.Log(taskType, result, "success"); // single string returned natively
+                    Logger.Log(taskType, result, "success"); // single string returned natively
                     return result;
                 }
                 catch (OperationCanceledException)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw;
                 }
                 catch (Exception)
                 {
-                    if (Vars.openLog) Logger.Log(taskType, "", "fail");
+                    Logger.Log(taskType, "", "fail");
                     throw new Exception(errEngine);
                 }
             }

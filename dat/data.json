@@ -6,67 +6,25 @@
   },
   "logs": [
     {
-      "uuid": "e8d23c44",
+      "uuid": "ca7j58b75",
       "type": "office2pdf",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\Markdown to PDF.pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\jjj.pdf",
       "status": "success",
-      "timestamp": "2026-06-15 13:36:05420"
+      "timestamp": "2026-06-15 13:31:13380"
     },
     {
-      "uuid": "c5b92e77",
-      "type": "imageconverter",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
+      "uuid": "ca15fs8byu75",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\Musahibe_Tehlili_Kontent_Ideyalari.pdf",
       "status": "success",
-      "timestamp": "2026-06-15 13:42:55430"
+      "timestamp": "2026-06-15 13:31:13380"
     },
     {
-      "uuid": "d4e81f66",
-      "type": "pdf2image",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\Markdown to PDF.pdf",
+      "uuid": "ca15fs8byfssu75",
+      "type": "office2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\pdOrigin - CopyMaxxed.pdf.pdf",
       "status": "success",
-      "timestamp": "2026-06-15 13:45:18900"
-    },
-    {
-      "uuid": "a7b3c944",
-      "type": "pdf2image",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\30 g\u00FCnl\u00FCk plan-roadmap.pdf.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:46:00120"
-    },
-    {
-      "uuid": "99f32e11",
-      "type": "pdfmerger",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:50:22300"
-    },
-    {
-      "uuid": "99f38e11",
-      "type": "pdfmerger",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:50:22300"
-    },
-    {
-      "uuid": "99g32e11",
-      "type": "pdfmerger",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:50:22300"
-    },
-    {
-      "uuid": "99q32e11",
-      "type": "pdfmerger",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:50:22300"
-    },
-    {
-      "uuid": "99b32e11",
-      "type": "pdfmerger",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ConvertedOfficeDoc.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:50:22300"
+      "timestamp": "2026-06-15 13:31:13380"
     }
   ]
 }
