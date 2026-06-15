@@ -4,27 +4,5 @@
     "bg": "#1E1E1E",
     "text": "#FFFFFF"
   },
-  "logs": [
-    {
-      "uuid": "ca7j58b75",
-      "type": "office2pdf",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\jjj.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:31:13380"
-    },
-    {
-      "uuid": "ca15fs8byu75",
-      "type": "office2pdf",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\Musahibe_Tehlili_Kontent_Ideyalari.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:31:13380"
-    },
-    {
-      "uuid": "ca15fs8byfssu75",
-      "type": "office2pdf",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\pdOrigin - CopyMaxxed.pdf.pdf",
-      "status": "success",
-      "timestamp": "2026-06-15 13:31:13380"
-    }
-  ]
+  "logs": []
 }

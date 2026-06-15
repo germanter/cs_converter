@@ -51,7 +51,8 @@ private static string _jsonSnapshot = @"{
         // ------------------------------------------
 
 
-
+        public static event Action? OnThemeChanged; // NEW: The UI color/theme broadcast engine
+        public static void NotifyThemeChanged() => OnThemeChanged?.Invoke();
         public static string baseBGcolor = "#1E1E1E";
         public static string baseTEXTcolor = "#FFFFFF";
 
