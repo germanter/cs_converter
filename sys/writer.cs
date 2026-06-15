@@ -58,6 +58,43 @@ namespace WriterHead
         /// <summary>
         /// MODE 1: ROOT LEVEL PRIORITY. Wipes data.json entirely and defaults it.
         /// </summary>
+        
+        private static async Task<string> ReadProperJsonAsync(string path, CancellationToken token)
+        {
+            try
+            {
+                if (!File.Exists(path)) return "";
+
+                string raw = await File.ReadAllTextAsync(path, token);
+                if (string.IsNullOrWhiteSpace(raw)) return "";
+
+                JsonNode? root = JsonNode.Parse(raw);
+                if (root == null) return "";
+
+                // Strict validation: must contain sys (object) and logs (array)
+                if (!(root["sys"] is JsonObject sys)) return "";
+                if (!(root["logs"] is JsonArray logs)) return "";
+
+                // Build a fresh, clean root. This automatically filters out 
+                // any non-existent/random keys that might have slipped into the file.
+                var cleanRoot = new JsonObject
+                {
+                    ["sys"] = sys.DeepClone(),
+                    ["logs"] = logs.DeepClone()
+                };
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                return cleanRoot.ToJsonString(options);
+            }
+            catch
+            {
+                // Swallow any file lock exceptions, parsing errors, or deep clone failures.
+                // Returning an empty string prevents the UI from showing broken text.
+                return "";
+            }
+        }
+
+
         public static Task<string> Mode1_NukeDataAsync()
         {
             var job = new Job
@@ -203,6 +240,8 @@ namespace WriterHead
                     if (currentJob.Mode == WriteMode.Mode1_Nuke)
                     {
                         await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
+                        // NEW: Read the exact state from disk after nuking
+                        Vars.jsonSnapshot = await ReadProperJsonAsync(Vars.dataDIR, token);
                         currentJob.Tcs.TrySetResult("success");
                         continue;
                     }
@@ -269,6 +308,8 @@ namespace WriterHead
                     // Write successfully executed manipulations back to file
                     var options = new JsonSerializerOptions { WriteIndented = true };
                     await File.WriteAllTextAsync(Vars.dataDIR, root.ToJsonString(options), token);
+                    // NEW: Stop guessing. Read the truth from the newly saved file.
+                    Vars.jsonSnapshot = await ReadProperJsonAsync(Vars.dataDIR, token);
 
                     currentJob.Tcs.TrySetResult("success");
                 }
@@ -286,7 +327,10 @@ namespace WriterHead
                     // =========================================================
                     try
                     {
-                        await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
+                    await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
+                        
+                    // NEW: Even in a crash, we read the fresh defaulted file back from disk
+                     Vars.jsonSnapshot = await ReadProperJsonAsync(Vars.dataDIR, token);
                     }
                     catch { } // No superhero shit. If we can't write, silently walk away.
 
