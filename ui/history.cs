@@ -1,3 +1,5 @@
+
+
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -51,39 +53,48 @@ namespace convix
             rootGrid.Children.Add(clickBlocker);
 
             // ==========================================
-            // MAIN FLOATING MODAL
+            // MAIN FULLSCREEN OVERLAY
             // ==========================================
             _mainModalView = new Grid { 
-                RowDefinitions = new RowDefinitions("Auto, *"),
-                Margin = new Thickness(40),
-                MaxWidth = 900,
-                MaxHeight = 600,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                RowDefinitions = new RowDefinitions("Auto, *")
+                // MaxWidth/Height removed so the header spreads to absolute screen corners
             };
 
             var modalBorder = new Border {
                 Background = _bgBrush,
-                BorderBrush = _textBrush,
-                BorderThickness = new Thickness(4),
-                Padding = new Thickness(25),
+                Padding = new Thickness(40), // 40px uniform padding from screen edges
                 Child = _mainModalView
             };
 
-            // HEADER
-            var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto, Auto") };
+            // HEADER (Spans full width pushing items to corners)
+            var headerGrid = new Grid { 
+                ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto, Auto"),
+                Margin = new Thickness(0, 0, 0, 40) // Breathing room below header
+            };
             
-            var title = new TextBlock { Text = "history", FontSize = 40, FontFamily = font, Foreground = _textBrush, VerticalAlignment = VerticalAlignment.Center };
+            // TOP LEFT: Title
+            var title = new TextBlock { 
+                Text = "history", 
+                FontSize = 40, 
+                FontFamily = font, 
+                Foreground = _textBrush, 
+                VerticalAlignment = VerticalAlignment.Center // Centered vertically with buttons
+            };
             Grid.SetColumn(title, 0);
             
-            var btnClearAll = CreateSimpleButton("[ clear all ]", async () => await ClearAllLogs(), 24);
-            btnClearAll.Margin = new Thickness(0, 0, 20, 0);
+            // TOP RIGHT: Clear All Button (0px border as requested)
+            var btnClearAll = CreateSimpleButton("[ clear all ]", async () => await ClearAllLogs(), 18, 0);
+            btnClearAll.Margin = new Thickness(0, 0, 25, 0);
             Grid.SetColumn(btnClearAll, 2);
 
-            var btnClose = new Button { Cursor = new Cursor(StandardCursorType.Hand), VerticalAlignment = VerticalAlignment.Center };
+            // TOP RIGHT: Close X Button
+            var btnClose = new Button { 
+                Cursor = new Cursor(StandardCursorType.Hand), 
+                VerticalAlignment = VerticalAlignment.Center 
+            };
             btnClose.Click += (s, e) => this.IsVisible = false;
             btnClose.Template = new Avalonia.Controls.Templates.FuncControlTemplate<Button>((c, s) => 
-                new TextBlock { Text = "X", FontSize = 40, FontFamily = font, Foreground = _textBrush, Background = Brushes.Transparent });
+                new TextBlock { Text = "X", FontSize = 36, FontFamily = font, Foreground = _textBrush, Background = Brushes.Transparent });
             Grid.SetColumn(btnClose, 3);
 
             headerGrid.Children.Add(title);
@@ -92,13 +103,17 @@ namespace convix
             Grid.SetRow(headerGrid, 0);
             _mainModalView.Children.Add(headerGrid);
 
-            // SCROLLABLE LOGS LIST
-            _logsContainer = new StackPanel { Spacing = 10, Margin = new Thickness(0, 20, 0, 0) };
+            // SCROLLABLE LOGS LIST (Restricted to center of screen)
+            _logsContainer = new StackPanel { 
+                Spacing = 20 
+            };
             
             var scrollViewer = new ScrollViewer {
                 Content = _logsContainer,
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                MaxWidth = 950, // Keeps the table nice and centered instead of spanning the whole wide monitor
+                HorizontalAlignment = HorizontalAlignment.Center
             };
             
             Grid.SetRow(scrollViewer, 1);
@@ -148,24 +163,24 @@ namespace convix
         {
             var rowBorder = new Border {
                 BorderBrush = _textBrush,
-                BorderThickness = new Thickness(2),
+                BorderThickness = new Thickness(0, 0, 0, 1), // Clean bottom divider line
                 Background = Brushes.Transparent,
-                Padding = new Thickness(15)
+                Padding = new Thickness(10, 10, 10, 20) 
             };
 
             var rowGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto") };
 
             // 1. Delete Button (Left)
-            var btnDelete = CreateSimpleButton("X", async () => await DeleteLog(uuid), 24);
-            btnDelete.Margin = new Thickness(0, 0, 15, 0);
+            var btnDelete = CreateSimpleButton("X", async () => await DeleteLog(uuid), 16);
+            btnDelete.Margin = new Thickness(0, 0, 25, 0); 
             Grid.SetColumn(btnDelete, 0);
 
             // 2. Info Block (Middle)
-            var infoStack = new StackPanel { Spacing = 5, VerticalAlignment = VerticalAlignment.Center };
+            var infoStack = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
             
             var headerText = new TextBlock { Text = $"[{type.ToUpper()}] - {status.ToUpper()} - {time}", FontSize = 16, FontFamily = _font, Foreground = _textBrush, FontWeight = FontWeight.Bold };
-            var pathText = new TextBlock { Text = $"Path: {fullpath}", FontSize = 14, FontFamily = _font, Foreground = _textBrush, TextTrimming = TextTrimming.CharacterEllipsis };
-            var uuidText = new TextBlock { Text = $"UUID: {uuid}", FontSize = 12, FontFamily = _font, Foreground = _textBrush, Opacity = 0.7 };
+            var pathText = new TextBlock { Text = $"Path: {fullpath}", FontSize = 14, FontFamily = _font, Foreground = _textBrush, TextTrimming = TextTrimming.CharacterEllipsis, Opacity = 0.9 };
+            var uuidText = new TextBlock { Text = $"UUID: {uuid}", FontSize = 12, FontFamily = _font, Foreground = _textBrush, Opacity = 0.5 };
 
             infoStack.Children.Add(headerText);
             infoStack.Children.Add(pathText);
@@ -175,8 +190,8 @@ namespace convix
             // 3. Copy Button (Right - ONLY if path exists)
             if (!string.IsNullOrWhiteSpace(fullpath))
             {
-                var btnCopy = CreateSimpleButton("Copy", async () => await CopyToClipboard(fullpath), 18);
-                btnCopy.Margin = new Thickness(15, 0, 0, 0);
+                var btnCopy = CreateSimpleButton("Copy", async () => await CopyToClipboard(fullpath), 14);
+                btnCopy.Margin = new Thickness(25, 0, 0, 0);
                 Grid.SetColumn(btnCopy, 2);
                 rowGrid.Children.Add(btnCopy);
             }
@@ -191,14 +206,18 @@ namespace convix
         // ==========================================
         // STRICT 2-COLOR UI HELPERS
         // ==========================================
-        private Button CreateSimpleButton(string text, Action onClick, double fontSize)
+        // Added borderThickness parameter default to 1 so you can bypass it for text-only buttons
+        private Button CreateSimpleButton(string text, Action onClick, double fontSize, double borderThickness = 1)
         {
             var btn = new Button { Cursor = new Cursor(StandardCursorType.Hand), VerticalAlignment = VerticalAlignment.Center };
             btn.Click += (s, e) => onClick();
             btn.Template = new Avalonia.Controls.Templates.FuncControlTemplate<Button>((control, scope) =>
             {
                 return new Border {
-                    BorderBrush = _textBrush, BorderThickness = new Thickness(2), Background = Brushes.Transparent, Padding = new Thickness(10, 5),
+                    BorderBrush = _textBrush, 
+                    BorderThickness = new Thickness(borderThickness), 
+                    Background = Brushes.Transparent, 
+                    Padding = new Thickness(15, 8), 
                     Child = new TextBlock { Text = text, FontSize = fontSize, FontFamily = _font, Foreground = _textBrush, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
                 };
             });
