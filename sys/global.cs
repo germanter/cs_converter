@@ -33,6 +33,24 @@ private static string _jsonSnapshot = @"{
 }";
 
         // Anyone (like the UI) can subscribe to this event to listen for changes
+        // public static event Action<string>? OnSnapshotChanged;
+
+        // public static string jsonSnapshot
+        // {
+        //     get => _jsonSnapshot;
+        //     set
+        //     {
+        //         if (_jsonSnapshot != value)
+        //         {
+        //             _jsonSnapshot = value;
+        //             // Fire the alarm! Pass the new json to whoever is listening.
+        //             OnSnapshotChanged?.Invoke(_jsonSnapshot);
+        //         }
+        //     }
+        // }
+        // ------------------------------------------
+
+
         public static event Action<string>? OnSnapshotChanged;
 
         public static string jsonSnapshot
@@ -42,13 +60,44 @@ private static string _jsonSnapshot = @"{
             {
                 if (_jsonSnapshot != value)
                 {
+                    // =================================================================
+                    // TELEMETRY LOG BLOCK
+                    // =================================================================
+                    var now = DateTime.Now;
+                    int threadId = Environment.CurrentManagedThreadId;
+                    int oldLen = _jsonSnapshot?.Length ?? 0;
+                    int newLen = value?.Length ?? 0;
+
+                    // Capture exactly who called this setter
+                    string callerInfo = "Unknown Caller";
+                    try
+                    {
+                        var stackTrace = new System.Diagnostics.StackTrace(1, false);
+                        var frame = stackTrace.GetFrame(0);
+                        var method = frame?.GetMethod();
+                        if (method != null)
+                        {
+                            callerInfo = $"{method.DeclaringType?.Name ?? "Global"}.{method.Name}";
+                        }
+                    }
+                    catch { /* Don't let diagnostics crash the app */ }
+
+                    // Output directly to Console/Terminal
+                    Console.WriteLine($"\n🚀 [SNAPSHOT UPDATE DETECTED]");
+                    Console.WriteLine($"   | Timestamp : {now:yyyy-MM-dd HH:mm:ss.fff}");
+                    Console.WriteLine($"   | Managed Thread ID : {threadId}");
+                    Console.WriteLine($"   | Triggered By      : {callerInfo}");
+                    Console.WriteLine($"   | Payload Change    : {oldLen} chars -> {newLen} chars");
+                    Console.WriteLine($"=================================================================");
+                    // =================================================================
+
                     _jsonSnapshot = value;
+                    
                     // Fire the alarm! Pass the new json to whoever is listening.
                     OnSnapshotChanged?.Invoke(_jsonSnapshot);
                 }
             }
         }
-        // ------------------------------------------
 
 
         public static event Action? OnThemeChanged; // NEW: The UI color/theme broadcast engine
