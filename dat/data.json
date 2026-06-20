@@ -1,8 +1,8 @@
 {
   "sys": {
     "openLog": true,
-    "bg": "#1E1E1E",
-    "text": "#FFFFFF"
+    "bg": "#240B22",
+    "text": "#00FF9F"
   },
   "logs": []
 }
