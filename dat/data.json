@@ -1,8 +1,51 @@
 {
   "sys": {
     "openLog": true,
-    "bg": "#000000",
+    "bg": "#1E1E1E",
     "text": "#FFFFFF"
   },
-  "logs": []
+  "logs": [
+    {
+      "uuid": "7d6df4e5",
+      "type": "image2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ggg (2).pdf",
+      "status": "success",
+      "timestamp": "2026-06-22 01:41:08855"
+    },
+    {
+      "uuid": "870cf8da",
+      "type": "image2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ggg (1).pdf",
+      "status": "success",
+      "timestamp": "2026-06-22 01:40:43954"
+    },
+    {
+      "uuid": "b8cb8406",
+      "type": "image2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\ggg.pdf",
+      "status": "success",
+      "timestamp": "2026-06-22 01:39:59476"
+    },
+    {
+      "uuid": "42c0d59b",
+      "type": "image2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-22 01:39:52527"
+    },
+    {
+      "uuid": "295bdc59",
+      "type": "image2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-22 01:38:42817"
+    },
+    {
+      "uuid": "c8e72a86",
+      "type": "image2pdf",
+      "fullpath": "",
+      "status": "fail",
+      "timestamp": "2026-06-22 01:38:36639"
+    }
+  ]
 }

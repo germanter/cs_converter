@@ -1,4 +1,3 @@
-
 // WRAPPED 2
 using System;
 using System.Collections.Generic;
@@ -17,352 +16,355 @@ using AppLogger; // Added for the Logger
 
 namespace CentralGateway
 {
-    public static class CentralController
-    {
-        private static int _isRunning = 0;
+    public static class CentralController
+    {
+        private static int _isRunning = 0;
 
-        public static bool isRunning
-        {
-            get => _isRunning == 1;
-            set => Interlocked.Exchange(ref _isRunning, value ? 1 : 0);
-        }
+        public static bool isRunning
+        {
+            get => _isRunning == 1;
+            set => Interlocked.Exchange(ref _isRunning, value ? 1 : 0);
+        }
 
-        /// <summary>
-        /// DRY Helper to validate file extensions rigidly.
-        /// </summary>
-        private static bool AreExtensionsValid(IEnumerable<string> filePaths, string[] allowedExtensions)
-        {
-            foreach (var path in filePaths)
-            {
-                if (string.IsNullOrWhiteSpace(path)) 
-                    return false;
+        /// <summary>
+        /// DRY Helper to validate file extensions rigidly.
+        /// </summary>
+        private static bool AreExtensionsValid(IEnumerable<string> filePaths, string[] allowedExtensions)
+        {
+            foreach (var path in filePaths)
+            {
+                if (string.IsNullOrWhiteSpace(path)) 
+                    return false;
 
-                string ext = Path.GetExtension(path).ToLowerInvariant();
-                if (!allowedExtensions.Contains(ext)) 
-                    return false;
-            }
-            return true;
-        }
+                string ext = Path.GetExtension(path).ToLowerInvariant();
+                if (!allowedExtensions.Contains(ext)) 
+                    return false;
+            }
+            return true;
+        }
 
-        /// <summary>
-        /// DRY Helper for the Logger to determine if it should return a single file path or a parent directory.
-        /// </summary>
-        private static string GetLogPath(IEnumerable<string> paths)
-        {
-            if (paths == null) return "";
-            
-            var list = paths.ToList();
-            if (list.Count == 0) return "";
-            
-            // If it's a single file, return the full path
-            if (list.Count == 1) return list[0]; 
+        /// <summary>
+        /// DRY Helper for the Logger to determine if it should return a single file path or a parent directory.
+        /// </summary>
+        private static string GetLogPath(IEnumerable<string> paths)
+        {
+            if (paths == null) return "";
+            
+            var list = paths.ToList();
+            if (list.Count == 0) return "";
+            
+            // If it's a single file, return the full path
+            if (list.Count == 1) return list[0]; 
 
-            // If multiple files, return the parent folder path (ensuring it has a trailing slash for aesthetics)
-            string directory = Path.GetDirectoryName(list[0]) ?? "";
-            if (!string.IsNullOrEmpty(directory) && 
-                !directory.EndsWith(Path.DirectorySeparatorChar.ToString()) && 
-                !directory.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
-            {
-                directory += Path.DirectorySeparatorChar;
-            }
-            return directory;
-        }
+            // If multiple files, return the parent folder path (ensuring it has a trailing slash for aesthetics)
+            string directory = Path.GetDirectoryName(list[0]) ?? "";
+            if (!string.IsNullOrEmpty(directory) && 
+                !directory.EndsWith(Path.DirectorySeparatorChar.ToString()) && 
+                !directory.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
+            {
+                directory += Path.DirectorySeparatorChar;
+            }
+            return directory;
+        }
 
-        public static async Task<string> Image2PdfCallerAsync(
-            List<ImageInput> images,
-            string saveDirectory,
-            string filename,
-            PageSizeOption pageSize,
-            OrientationOption orientation,
-            MarginOption margin,
-            ImageFitOption imageFit,
-            int quality,
-            IProgress<double>? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
-                return string.Empty;
+        public static async Task<string> Image2PdfCallerAsync(
+            List<ImageInput> images,
+            string saveDirectory,
+            string filename,
+            PageSizeOption pageSize,
+            OrientationOption orientation,
+            MarginOption margin,
+            ImageFitOption imageFit,
+            int quality,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+                return string.Empty;
 
-            try
-            {
-                string taskType = "image2pdf";
-                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".ico", ".bmp", ".tiff", ".tif", ".tga", ".psd" };
-                string errUnsupportedType = "unsupported image type";
-                string errEngine = "internal engine error";
+            try
+            {
+                string taskType = "image2pdf";
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".ico", ".bmp", ".tiff", ".tif", ".tga", ".psd" };
+                string errUnsupportedType = "unsupported image type";
+                string errEngine = "internal engine error";
 
-                // Lightweight validation runs instantly on the calling UI thread
-                if (!AreExtensionsValid(images.Select(img => img.FilePath), allowedExtensions))
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errUnsupportedType);
-                }
+                // Lightweight validation runs instantly on the calling UI thread
+                if (!AreExtensionsValid(images.Select(img => img.FilePath), allowedExtensions))
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errUnsupportedType);
+                }
 
-                try
-                {
-                    // UI Thread Yields Instantly: Handoff heavy processing to the thread-pool
-                    string result = await Task.Run(() => ImageToPdfEngine.ConvertToPdf(
-                        images: images,
-                        saveDirectory: saveDirectory,
-                        filename: filename,
-                        pageSize: pageSize,
-                        orientation: orientation,
-                        margin: margin,
-                        imageFit: imageFit,
-                        quality: quality,
-                        progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                try
+                {
+                    // UI Thread Yields Instantly: Handoff heavy processing to the thread-pool
+                    string result = await Task.Run(() => ImageToPdfEngine.ConvertToPdf(
+                        images: images,
+                        saveDirectory: saveDirectory,
+                        filename: filename,
+                        pageSize: pageSize,
+                        orientation: orientation,
+                        margin: margin,
+                        imageFit: imageFit,
+                        quality: quality,
+                        progress: progress,
+                        cancellationToken: cancellationToken
+                    ), cancellationToken);
 
-                    Logger.Log(taskType, result, "success"); // result is a single string here
-                    return result;
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw; // Bubble up intentional user cancellations unchanged natively
-                }
-                catch (Exception)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errEngine);
-                }
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _isRunning, 0);
-            }
-        }
+                    Logger.Log(taskType, result, "success"); // result is a single string here
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw; // Bubble up intentional user cancellations unchanged natively
+                }
+                catch (Exception)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errEngine);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isRunning, 0);
+            }
+        }
 
-        public static async Task<List<string>> ImageConverterCallerAsync(
-            string[] sourceImages,
-            string targetFormat,
-            string outputPath,
-            IProgress<double>? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
-                return new List<string>();
+        public static async Task<string> ImageConverterCallerAsync(
+            string[] sourceImages,
+            string targetFormat,
+            string outputPath,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+                return string.Empty;
 
-            try
-            {
-                string taskType = "imageconverter";
-                string[] allowedExtensions = { ".jpg", ".jpeg", ".ico", ".png", ".webp", ".bmp", ".tiff", ".tif" };
-                string errUnsupportedType = "unsupported image type";
-                string errEngine = "internal engine error";
+            try
+            {
+                string taskType = "imageconverter";
+                string[] allowedExtensions = { ".jpg", ".jpeg", ".ico", ".png", ".webp", ".bmp", ".tiff", ".tif" };
+                string errUnsupportedType = "unsupported image type";
+                string errEngine = "internal engine error";
 
-                if (!AreExtensionsValid(sourceImages, allowedExtensions))
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errUnsupportedType);
-                }
+                if (!AreExtensionsValid(sourceImages, allowedExtensions))
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errUnsupportedType);
+                }
 
-                try
-                {
-                    var result = await UltimateImageConverter.ConvertImagesAsync(
-                        sourceImages,
-                        targetFormat,
-                        outputPath,
-                        progress,
-                        cancellationToken
-                    );
+                try
+                {
+                    var result = await UltimateImageConverter.ConvertImagesAsync(
+                        sourceImages,
+                        targetFormat,
+                        outputPath,
+                        progress,
+                        cancellationToken
+                    );
 
-                    Logger.Log(taskType, GetLogPath(result), "success");
-                    return result;
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw;
-                }
-                catch (Exception)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errEngine);
-                }
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _isRunning, 0);
-            }
-        }
+                    string logPath = GetLogPath(result);
+                    Logger.Log(taskType, logPath, "success");
+                    return logPath;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw;
+                }
+                catch (Exception)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errEngine);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isRunning, 0);
+            }
+        }
 
-        public static async Task<string[]> Office2PdfCallerAsync(
-            string[] inputPaths,
-            string newFileName,
-            string filePathToSave,
-            string mode,
-            int merge,
-            IProgress<double>? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
-                return new string[0];
+        public static async Task<string> Office2PdfCallerAsync(
+            string[] inputPaths,
+            string newFileName,
+            string filePathToSave,
+            string mode,
+            int merge,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+                return string.Empty;
 
-            try
-            {
-                string taskType = "office2pdf";
-                string errHomogeneity = "homogenity error";
-                string errEngine = "internal engine error";
+            try
+            {
+                string taskType = "office2pdf";
+                string errHomogeneity = "homogenity error";
+                string errEngine = "internal engine error";
 
-                string expectedExtension = mode == "docx-pdf" ? ".docx" : 
-                                           mode == "pptx-pdf" ? ".pptx" : 
-                                           string.Empty;
+                string expectedExtension = mode == "docx-pdf" ? ".docx" : 
+                                           mode == "pptx-pdf" ? ".pptx" : 
+                                           string.Empty;
 
-                if (string.IsNullOrEmpty(expectedExtension))
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errHomogeneity);
-                }
+                if (string.IsNullOrEmpty(expectedExtension))
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errHomogeneity);
+                }
 
-                bool isHomogeneous = inputPaths.All(path => 
-                    !string.IsNullOrWhiteSpace(path) && 
-                    Path.GetExtension(path).Equals(expectedExtension, StringComparison.OrdinalIgnoreCase));
+                bool isHomogeneous = inputPaths.All(path => 
+                    !string.IsNullOrWhiteSpace(path) && 
+                    Path.GetExtension(path).Equals(expectedExtension, StringComparison.OrdinalIgnoreCase));
 
-                if (!isHomogeneous)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errHomogeneity);
-                }
+                if (!isHomogeneous)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errHomogeneity);
+                }
 
-                try
-                {
-                    string[] result = await Task.Run(() => OfficeBatchToPdfMerger.ConvertAndMerge(
-                        inputPaths: inputPaths,
-                        newFileName: newFileName,
-                        filePathToSave: filePathToSave,
-                        libreOfficeExePath: Vars.libreDIR,
-                        mode: mode,
-                        merge: merge,
-                        progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                try
+                {
+                    string[] result = await Task.Run(() => OfficeBatchToPdfMerger.ConvertAndMerge(
+                        inputPaths: inputPaths,
+                        newFileName: newFileName,
+                        filePathToSave: filePathToSave,
+                        libreOfficeExePath: Vars.libreDIR,
+                        mode: mode,
+                        merge: merge,
+                        progress: progress,
+                        cancellationToken: cancellationToken
+                    ), cancellationToken);
 
-                    Logger.Log(taskType, GetLogPath(result), "success");
-                    return result;
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw;
-                }
-                catch (Exception)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errEngine);
-                }
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _isRunning, 0);
-            }
-        }
+                    string logPath = GetLogPath(result);
+                    Logger.Log(taskType, logPath, "success");
+                    return logPath;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw;
+                }
+                catch (Exception)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errEngine);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isRunning, 0);
+            }
+        }
 
-        public static async Task<List<string>> Pdf2ImageCallerAsync(
-            string pdfPath,
-            string outputPath,
-            int dpi,
-            int quality,
-            IProgress<double>? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
-                return new List<string>();
+        public static async Task<string> Pdf2ImageCallerAsync(
+            string pdfPath,
+            string outputPath,
+            int dpi,
+            int quality,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+                return string.Empty;
 
-            try
-            {
-                string taskType = "pdf2image";
-                string[] allowedExtensions = { ".pdf" };
-                string errNoPdf = "no pdf error";
-                string errEngine = "internal engine error";
+            try
+            {
+                string taskType = "pdf2image";
+                string[] allowedExtensions = { ".pdf" };
+                string errNoPdf = "no pdf error";
+                string errEngine = "internal engine error";
 
-                if (!AreExtensionsValid(new[] { pdfPath }, allowedExtensions))
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errNoPdf);
-                }
+                if (!AreExtensionsValid(new[] { pdfPath }, allowedExtensions))
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errNoPdf);
+                }
 
-                try
-                {
-                    var result = await Task.Run(() => PdfToImageConverter.ConvertPdfToImages(
-                        pdfPath: pdfPath,
-                        outputPath: outputPath,
-                        dpi: dpi,
-                        quality: quality,
-                        progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                try
+                {
+                    var result = await Task.Run(() => PdfToImageConverter.ConvertPdfToImages(
+                        pdfPath: pdfPath,
+                        outputPath: outputPath,
+                        dpi: dpi,
+                        quality: quality,
+                        progress: progress,
+                        cancellationToken: cancellationToken
+                    ), cancellationToken);
 
-                    Logger.Log(taskType, GetLogPath(result), "success");
-                    return result;
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw;
-                }
-                catch (Exception)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errEngine);
-                }
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _isRunning, 0);
-            }
-        }
+                    string logPath = GetLogPath(result);
+                    Logger.Log(taskType, logPath, "success");
+                    return logPath;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw;
+                }
+                catch (Exception)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errEngine);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isRunning, 0);
+            }
+        }
 
-        public static async Task<string> PdfMergerCallerAsync(
-            string[] pdfPaths,
-            string filePathToSave,
-            string newFileName,
-            IProgress<double>? progress = null,
-            CancellationToken cancellationToken = default)
-        {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
-                return string.Empty;
+        public static async Task<string> PdfMergerCallerAsync(
+            string[] pdfPaths,
+            string filePathToSave,
+            string newFileName,
+            IProgress<double>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+                return string.Empty;
 
-            try
-            {
-                string taskType = "pdfmerger";
-                string[] allowedExtensions = { ".pdf" };
-                string errNoPdf = "no pdf error";
-                string errEngine = "internal engine error";
+            try
+            {
+                string taskType = "pdfmerger";
+                string[] allowedExtensions = { ".pdf" };
+                string errNoPdf = "no pdf error";
+                string errEngine = "internal engine error";
 
-                if (!AreExtensionsValid(pdfPaths, allowedExtensions))
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errNoPdf);
-                }
+                if (!AreExtensionsValid(pdfPaths, allowedExtensions))
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errNoPdf);
+                }
 
-                try
-                {
-                    string result = await Task.Run(() => PdfMerger.Merge(
-                        pdfPaths: pdfPaths,
-                        filePathToSave: filePathToSave,
-                        newFileName: newFileName,
-                        progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                try
+                {
+                    string result = await Task.Run(() => PdfMerger.Merge(
+                        pdfPaths: pdfPaths,
+                        filePathToSave: filePathToSave,
+                        newFileName: newFileName,
+                        progress: progress,
+                        cancellationToken: cancellationToken
+                    ), cancellationToken);
 
-                    Logger.Log(taskType, result, "success"); // single string returned natively
-                    return result;
-                }
-                catch (OperationCanceledException)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw;
-                }
-                catch (Exception)
-                {
-                    Logger.Log(taskType, "", "fail");
-                    throw new Exception(errEngine);
-                }
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _isRunning, 0);
-            }
-        }
-    }
+                    Logger.Log(taskType, result, "success"); // single string returned natively
+                    return result;
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw;
+                }
+                catch (Exception)
+                {
+                    Logger.Log(taskType, "", "fail");
+                    throw new Exception(errEngine);
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isRunning, 0);
+            }
+        }
+    }
 }
