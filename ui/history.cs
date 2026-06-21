@@ -1,5 +1,3 @@
-
-
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -56,50 +54,66 @@ namespace convix
             // MAIN FULLSCREEN OVERLAY
             // ==========================================
             _mainModalView = new Grid { 
-                RowDefinitions = new RowDefinitions("Auto, *")
-                // MaxWidth/Height removed so the header spreads to absolute screen corners
+                RowDefinitions = new RowDefinitions("60, *") // Matches HeaderHeight
             };
 
             var modalBorder = new Border {
                 Background = _bgBrush,
-                Padding = new Thickness(40), // 40px uniform padding from screen edges
+                Padding = new Thickness(25), // Matches WindowPadding
                 Child = _mainModalView
             };
 
-            // HEADER (Spans full width pushing items to corners)
+            // HEADER (Matches MainWindow structure)
             var headerGrid = new Grid { 
-                ColumnDefinitions = new ColumnDefinitions("Auto, *, Auto, Auto"),
-                Margin = new Thickness(0, 0, 0, 40) // Breathing room below header
+                ColumnDefinitions = new ColumnDefinitions("Auto, *") 
             };
             
             // TOP LEFT: Title
             var title = new TextBlock { 
                 Text = "history", 
-                FontSize = 40, 
+                FontSize = 40.0, // Matches TitleFontSize
                 FontFamily = font, 
                 Foreground = _textBrush, 
-                VerticalAlignment = VerticalAlignment.Center // Centered vertically with buttons
+                VerticalAlignment = VerticalAlignment.Top, // Matches MainWindow layout alignment
+                Margin = new Thickness(0, -20, 0, 0) // Matches MainWindow title top margins
             };
             Grid.SetColumn(title, 0);
             
-            // TOP RIGHT: Clear All Button (0px border as requested)
-            var btnClearAll = CreateSimpleButton("[ clear all ]", async () => await ClearAllLogs(), 18, 0);
-            btnClearAll.Margin = new Thickness(0, 0, 25, 0);
-            Grid.SetColumn(btnClearAll, 2);
+            // TOP RIGHT: Control Buttons Container
+            var rightPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Spacing = 30.0 // Matches MainWindow icon panel spacing
+            };
 
-            // TOP RIGHT: Close X Button
+            // Clear All Button (0px border)
+            var btnClearAll = CreateSimpleButton("[ clear all ]", async () => await ClearAllLogs(), 16, 0);
+            btnClearAll.VerticalAlignment = VerticalAlignment.Top;
+
+            // Close X Button
             var btnClose = new Button { 
                 Cursor = new Cursor(StandardCursorType.Hand), 
-                VerticalAlignment = VerticalAlignment.Center 
+                VerticalAlignment = VerticalAlignment.Top 
             };
             btnClose.Click += (s, e) => this.IsVisible = false;
             btnClose.Template = new Avalonia.Controls.Templates.FuncControlTemplate<Button>((c, s) => 
-                new TextBlock { Text = "X", FontSize = 36, FontFamily = font, Foreground = _textBrush, Background = Brushes.Transparent });
-            Grid.SetColumn(btnClose, 3);
+                new TextBlock { 
+                    Text = "X", 
+                    FontSize = 32.0, // Matches TopIconSize
+                    FontFamily = font, 
+                    Foreground = _textBrush, 
+                    Background = Brushes.Transparent,
+                    VerticalAlignment = VerticalAlignment.Top
+                });
+
+            rightPanel.Children.Add(btnClearAll);
+            rightPanel.Children.Add(btnClose);
+            Grid.SetColumn(rightPanel, 1);
 
             headerGrid.Children.Add(title);
-            headerGrid.Children.Add(btnClearAll);
-            headerGrid.Children.Add(btnClose);
+            headerGrid.Children.Add(rightPanel);
             Grid.SetRow(headerGrid, 0);
             _mainModalView.Children.Add(headerGrid);
 
@@ -111,7 +125,7 @@ namespace convix
             var scrollViewer = new ScrollViewer {
                 Content = _logsContainer,
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
                 MaxWidth = 950, // Keeps the table nice and centered instead of spanning the whole wide monitor
                 HorizontalAlignment = HorizontalAlignment.Center
             };
@@ -179,8 +193,8 @@ namespace convix
             var infoStack = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
             
             var headerText = new TextBlock { Text = $"[{type.ToUpper()}] - {status.ToUpper()} - {time}", FontSize = 16, FontFamily = _font, Foreground = _textBrush, FontWeight = FontWeight.Bold };
-            var pathText = new TextBlock { Text = $"Path: {fullpath}", FontSize = 14, FontFamily = _font, Foreground = _textBrush, TextTrimming = TextTrimming.CharacterEllipsis, Opacity = 0.9 };
-            var uuidText = new TextBlock { Text = $"UUID: {uuid}", FontSize = 12, FontFamily = _font, Foreground = _textBrush, Opacity = 0.5 };
+            var pathText = new TextBlock { Text = $"Path: {fullpath}", FontSize = 14, FontFamily = _font, Foreground = _textBrush, TextTrimming = TextTrimming.CharacterEllipsis }; // Opacity removed
+            var uuidText = new TextBlock { Text = $"UUID: {uuid}", FontSize = 12, FontFamily = _font, Foreground = _textBrush }; // Opacity removed
 
             infoStack.Children.Add(headerText);
             infoStack.Children.Add(pathText);

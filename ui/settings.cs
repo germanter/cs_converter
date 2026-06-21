@@ -1,4 +1,3 @@
-
 using System;
 using System.Threading.Tasks;
 using Avalonia;
@@ -55,20 +54,48 @@ namespace convix
             // ==========================================
             // MAIN SETTINGS VIEW
             // ==========================================
-            _mainView = new Grid { RowDefinitions = new RowDefinitions("Auto, *") };
+            _mainView = new Grid { RowDefinitions = new RowDefinitions("60, *") }; // Configured for 60px header height
             
-            var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*, Auto") };
-            var title = new TextBlock { Text = "settings", FontSize = 40, FontFamily = font, Foreground = _textBrush };
+            var headerGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto, *") }; // Columns configured like MainWindow
+            var title = new TextBlock { 
+                Text = "settings", 
+                FontSize = 40.0, 
+                FontFamily = font, 
+                Foreground = _textBrush,
+                VerticalAlignment = VerticalAlignment.Top, // Vertically aligned to match the top
+                Margin = new Thickness(0, -20, 0, 0) // Matching title top offset
+            };
             
-            var btnClose = new Button { Cursor = new Cursor(StandardCursorType.Hand) };
+            // Container for top-right aligned actions
+            var rightPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Spacing = 30.0
+            };
+
+            var btnClose = new Button { 
+                Cursor = new Cursor(StandardCursorType.Hand),
+                VerticalAlignment = VerticalAlignment.Top
+            };
             btnClose.Click += (s, e) => this.IsVisible = false;
             btnClose.Template = new Avalonia.Controls.Templates.FuncControlTemplate<Button>((c, s) => 
-                new TextBlock { Text = "X", FontSize = 40, FontFamily = font, Foreground = _textBrush, Background = Brushes.Transparent });
+                new TextBlock { 
+                    Text = "X", 
+                    FontSize = 32.0, // Standardized font size for top close buttons
+                    FontFamily = font, 
+                    Foreground = _textBrush, 
+                    Background = Brushes.Transparent,
+                    VerticalAlignment = VerticalAlignment.Top
+                });
             
+            rightPanel.Children.Add(btnClose);
+
             Grid.SetColumn(title, 0);
-            Grid.SetColumn(btnClose, 1);
+            Grid.SetColumn(rightPanel, 1);
             headerGrid.Children.Add(title);
-            headerGrid.Children.Add(btnClose);
+            headerGrid.Children.Add(rightPanel);
             
             var optionsStack = new StackPanel { Spacing = 10, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
 

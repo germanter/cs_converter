@@ -45,8 +45,10 @@ namespace convix
             this.Background = bgBrush;
             this.Margin = new Thickness(-borderThick, 0, 0, 0);
             this.ZIndex = 1;
+            this.Padding = new Thickness(gap); // Uniform static padding so the list elements align inside the border
 
-            _panel = new StackPanel { Margin = new Thickness(gap), Spacing = gap };
+            // Spacing is maintained between items, but outer margins are handled by the Border Padding
+            _panel = new StackPanel { Spacing = gap };
 
             _titleGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*, Auto") };
 
@@ -106,7 +108,16 @@ namespace convix
             _titleGrid.Children.Add(_clearAllBtn);
 
             _panel.Children.Add(_titleGrid);
-            this.Child = _panel;
+
+            // Wraps the entire panel to prevent boundary overflow while keeping the scrollbar hidden
+            var scrollViewer = new ScrollViewer
+            {
+                Content = _panel,
+                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden
+            };
+
+            this.Child = scrollViewer;
         }
 
         public async void Refresh(string category, string snapshot)
