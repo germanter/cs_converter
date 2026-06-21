@@ -165,22 +165,20 @@ namespace convix
         {
             foreach (var path in paths)
             {
-                string ext = Path.GetExtension(path).ToLowerInvariant();
-                string[] allowed = { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".ico", ".bmp", ".tiff", ".tif", ".tga", ".psd" };
-                if (allowed.Contains(ext))
+                // Automatically set the save directory from the first valid path found
+                if (string.IsNullOrEmpty(_saveDirectory))
                 {
-                    if (string.IsNullOrEmpty(_saveDirectory))
-                    {
-                        _saveDirectory = Path.GetDirectoryName(path) ?? "";
-                    }
-
-                    _fileItems.Add(new ImageItemUI
-                    {
-                        FilePath = path,
-                        Rotation = RotationSteps.None
-                    });
+                    _saveDirectory = Path.GetDirectoryName(path) ?? "";
                 }
+
+                // Just take the path and shove it right into the list
+                _fileItems.Add(new ImageItemUI
+                {
+                    FilePath = path,
+                    Rotation = RotationSteps.None
+                });
             }
+            
             RebuildFileListUI();
         }
 
