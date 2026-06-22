@@ -12,9 +12,9 @@
 
   <AvaloniaResource Include="s_assets\**" />
 
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.10" />
-    <PackageReference Include="Avalonia" Version="11.0.10" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.0.10" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.13" />
+    <PackageReference Include="Avalonia" Version="11.0.13" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.0.13" />
     <PackageReference Include="Clippit" Version="3.4.6" />
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.14.0" />

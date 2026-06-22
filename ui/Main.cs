@@ -561,9 +561,11 @@ using Avalonia;
 using Avalonia.Controls; 
 using Avalonia.Layout; 
 using Avalonia.Media; 
+using Avalonia.Controls.Documents;
 using Avalonia.Input; 
 using Avalonia.Threading; 
 using Avalonia.Platform.Storage; 
+using Avalonia.Styling;
 
 // Namespace imports to safely propagate operational parameters across frames
 using ImageToPdfApp;
@@ -677,6 +679,7 @@ public class MainWindow : Window {
         var assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name ?? "convix";
         globalFont = new FontFamily($"avares://{assemblyName}/s_assets#Nunito");
 
+    
         this.Background = bgBrush;
         this.Foreground = textBrush;
         this.FontFamily = globalFont;
@@ -685,8 +688,10 @@ public class MainWindow : Window {
         this.Width = 1100;
         this.Height = 650;
         this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        
 
         BuildUI();
+        
 
         Vars.OnSnapshotChanged += OnSnapshotChanged;
         

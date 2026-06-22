@@ -4,5 +4,20 @@
     "bg": "#000000",
     "text": "#FFFFFF"
   },
-  "logs": []
+  "logs": [
+    {
+      "uuid": "e5e64da7",
+      "type": "image2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\fiiiiii.pdf",
+      "status": "success",
+      "timestamp": "2026-06-22 21:45:13216"
+    },
+    {
+      "uuid": "00511f08",
+      "type": "image2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\document (5).pdf",
+      "status": "success",
+      "timestamp": "2026-06-22 20:39:58107"
+    }
+  ]
 }
