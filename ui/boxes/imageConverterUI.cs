@@ -70,12 +70,12 @@ namespace convix
             var targetFormat = _formatDropdown.SelectedValue.ToString().ToLower();
             var sourceImages = files.Select(x => x.FilePath).ToArray();
 
-            // Invoke CentralController ImageConverterCallerAsync
+            // Invoke CentralController ImageConverterCallerAsync with the required filename parameter
             string logPath = await CentralController.ImageConverterCallerAsync(
                 sourceImages: sourceImages,
                 targetFormat: targetFormat,
                 outputPath: saveDirectory,
-                filename: filename,
+                filename: filename, // Added parameter to match the active method overload signature
                 progress: progress,
                 cancellationToken: cancellationToken
             );

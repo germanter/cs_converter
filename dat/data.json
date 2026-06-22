@@ -2,22 +2,43 @@
   "sys": {
     "openLog": true,
     "bg": "#000000",
-    "text": "#FFFFFF"
+    "text": "#0AFF1D"
   },
   "logs": [
     {
-      "uuid": "e5e64da7",
-      "type": "image2pdf",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\fiiiiii.pdf",
+      "uuid": "fb103dc5",
+      "type": "pdf2image",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\PDF_Export_7483f25d\\",
       "status": "success",
-      "timestamp": "2026-06-22 21:45:13216"
+      "timestamp": "2026-06-22 22:14:17493"
     },
     {
-      "uuid": "00511f08",
-      "type": "image2pdf",
-      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\document (5).pdf",
+      "uuid": "b81e666c",
+      "type": "pdf2image",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\PDF_Export_38694716\\",
       "status": "success",
-      "timestamp": "2026-06-22 20:39:58107"
+      "timestamp": "2026-06-22 22:14:04109"
+    },
+    {
+      "uuid": "a965e88f",
+      "type": "image2pdf",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\fiii (3).pdf",
+      "status": "success",
+      "timestamp": "2026-06-22 22:11:55604"
+    },
+    {
+      "uuid": "61d70b72",
+      "type": "pdf2image",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\PDF_Export_0018e2c1\\",
+      "status": "success",
+      "timestamp": "2026-06-22 22:09:24879"
+    },
+    {
+      "uuid": "97fbb793",
+      "type": "imageconverter",
+      "fullpath": "C:\\Users\\GERMANTATE\\Downloads\\",
+      "status": "success",
+      "timestamp": "2026-06-22 22:09:03293"
     }
   ]
 }

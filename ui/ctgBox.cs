@@ -1447,6 +1447,9 @@ namespace convix
         protected abstract Control CreateSettingsControl();
         protected abstract bool IsRotationEnabled { get; }
         public abstract string DefaultFileName { get; }
+        protected virtual Assets.IconData? CustomTileIcon => null;
+        protected virtual int MaxFilesAllowed => int.MaxValue;
+
         protected abstract Task<string> OnExecuteAsync(
             IReadOnlyList<FileCollectionPanel.FileItem> files,
             string saveDirectory,
@@ -1639,7 +1642,7 @@ namespace convix
             // ==========================================
             // ROW 4: FILE COLLECTION PANEL (SCROLLABLE WRAP)
             // ==========================================
-            FileCollection = new FileCollectionPanel(bgBrush, textBrush, globalFont, IsRotationEnabled);
+            FileCollection = new FileCollectionPanel(bgBrush, textBrush, globalFont, IsRotationEnabled, CustomTileIcon, MaxFilesAllowed);
             Grid.SetRow(FileCollection, 4);
             this.Children.Add(FileCollection);
         }
@@ -1835,6 +1838,8 @@ namespace convix
         private readonly SolidColorBrush _textBrush;
         private readonly FontFamily _globalFont;
         private readonly bool _isRotationEnabled;
+        private readonly Assets.IconData _tileIcon;
+        private readonly int _maxFiles;
 
         private FileItem? _draggedItem;
         private Point _dragStartPoint;
@@ -1842,12 +1847,14 @@ namespace convix
 
         public IReadOnlyList<FileItem> FileItems => _fileItems;
 
-        public FileCollectionPanel(SolidColorBrush bg, SolidColorBrush text, FontFamily font, bool isRotationEnabled)
+        public FileCollectionPanel(SolidColorBrush bg, SolidColorBrush text, FontFamily font, bool isRotationEnabled, Assets.IconData? tileIcon = null, int maxFiles = int.MaxValue)
         {
             _bgBrush = bg;
             _textBrush = text;
             _globalFont = font;
             _isRotationEnabled = isRotationEnabled;
+            _tileIcon = tileIcon ?? Assets.ImageIcon;
+            _maxFiles = maxFiles;
 
             _fileWrapPanel = new WrapPanel
             {
@@ -1867,18 +1874,38 @@ namespace convix
 
         public void AddFiles(IEnumerable<string> paths, Action<string>? onFirstFileAdded = null)
         {
-            foreach (var path in paths)
+            if (_maxFiles == 1)
             {
-                if (_fileItems.Count == 0 && onFirstFileAdded != null)
+                var path = paths.FirstOrDefault();
+                if (path != null)
                 {
-                    onFirstFileAdded(path);
+                    _fileItems.Clear(); // PDF2Image limit: replace existing file cleanly
+                    if (onFirstFileAdded != null)
+                    {
+                        onFirstFileAdded(path);
+                    }
+                    _fileItems.Add(new FileItem
+                    {
+                        FilePath = path,
+                        Rotation = RotationSteps.None
+                    });
                 }
-
-                _fileItems.Add(new FileItem
+            }
+            else
+            {
+                foreach (var path in paths)
                 {
-                    FilePath = path,
-                    Rotation = RotationSteps.None
-                });
+                    if (_fileItems.Count == 0 && onFirstFileAdded != null)
+                    {
+                        onFirstFileAdded(path);
+                    }
+
+                    _fileItems.Add(new FileItem
+                    {
+                        FilePath = path,
+                        Rotation = RotationSteps.None
+                    });
+                }
             }
             RebuildFileListUI();
         }
@@ -2031,7 +2058,7 @@ namespace convix
             Grid.SetRow(btnClose, 0);
             grid.Children.Add(btnClose);
 
-            var imageIcon = CtgBox.CreateSvgIconStatic(Assets.ImageIcon, 40, _bgBrush, _textBrush);
+            var imageIcon = CtgBox.CreateSvgIconStatic(_tileIcon, 40, _bgBrush, _textBrush);
             imageIcon.HorizontalAlignment = HorizontalAlignment.Center;
             imageIcon.VerticalAlignment = VerticalAlignment.Center;
             imageIcon.RenderTransformOrigin = RelativePoint.Center;

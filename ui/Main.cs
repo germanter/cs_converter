@@ -551,8 +551,6 @@
 // }
 
 
-
-// new guy
 using System; 
 using System.Collections.Generic; 
 using System.Linq;
@@ -561,11 +559,9 @@ using Avalonia;
 using Avalonia.Controls; 
 using Avalonia.Layout; 
 using Avalonia.Media; 
-using Avalonia.Controls.Documents;
 using Avalonia.Input; 
 using Avalonia.Threading; 
 using Avalonia.Platform.Storage; 
-using Avalonia.Styling;
 
 // Namespace imports to safely propagate operational parameters across frames
 using ImageToPdfApp;
@@ -679,7 +675,6 @@ public class MainWindow : Window {
         var assemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name ?? "convix";
         globalFont = new FontFamily($"avares://{assemblyName}/s_assets#Nunito");
 
-    
         this.Background = bgBrush;
         this.Foreground = textBrush;
         this.FontFamily = globalFont;
@@ -688,10 +683,8 @@ public class MainWindow : Window {
         this.Width = 1100;
         this.Height = 650;
         this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        
 
         BuildUI();
-        
 
         Vars.OnSnapshotChanged += OnSnapshotChanged;
         
@@ -729,6 +722,10 @@ public class MainWindow : Window {
             else if (category == "ImageConverter")
             {
                 view = new ImageConverterUI(this, bgBrush, textBrush, globalFont);
+            }
+            else if (category == "PDF2Image")
+            {
+                view = new Pdf2ImageUI(this, bgBrush, textBrush, globalFont);
             }
             
             if (view != null)
@@ -937,7 +934,7 @@ public class MainWindow : Window {
         }
         
         _ctgBoxHelper.SetProgress(null); // Initialize clean
-        _ctgBoxHelper.IsVisible = (activeCTG == "Image2PDF" || activeCTG == "ImageConverter"); // Setup initial visibility configuration
+        _ctgBoxHelper.IsVisible = (activeCTG == "Image2PDF" || activeCTG == "ImageConverter" || activeCTG == "PDF2Image"); // Setup initial visibility configuration
         
         nonoBorder.Child = _ctgBoxHelper;
 
