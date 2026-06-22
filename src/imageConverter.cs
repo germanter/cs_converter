@@ -1,5 +1,5 @@
 
-// NEW
+// new guy
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -15,6 +15,7 @@ public static class UltimateImageConverter
         IEnumerable<string> images, 
         string targetFormat, 
         string outputPath,
+        string? filename, // New variable
         IProgress<double>? progress = null, 
         CancellationToken cancellationToken = default)
     {
@@ -31,6 +32,12 @@ public static class UltimateImageConverter
         var reservedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pathLock = new object();
 
+        // Sanitize the provided filename or default to "image"
+        string targetBaseName = SanitizeFileName(filename);
+
+        // Map inputs to include a 1-based index (e.g., filename1, filename2, ...)
+        var indexedInputs = inputList.Select((path, index) => (Path: path, Index: index + 1)).ToList();
+
         // --- THE ERROR TRAP ---
         Exception? criticalError = null;
 
@@ -45,9 +52,12 @@ public static class UltimateImageConverter
 
         try
         {
-            await Parallel.ForEachAsync(inputList, parallelOptions, async (inputPath, token) =>
+            await Parallel.ForEachAsync(indexedInputs, parallelOptions, async (item, token) =>
             {
                 token.ThrowIfCancellationRequested();
+
+                string inputPath = item.Path;
+                int fileIndex = item.Index;
 
                 var fileInfo = new FileInfo(inputPath);
                 if (!fileInfo.Exists) throw new FileNotFoundException($"Input file missing: {inputPath}");
@@ -58,17 +68,17 @@ public static class UltimateImageConverter
 
                 try
                 {
-                    string fileName = Path.GetFileNameWithoutExtension(inputPath);
+                    string baseName = $"{targetBaseName}{fileIndex}";
                     string ext = targetFormat.ToLowerInvariant();
                     
                     lock (pathLock)
                     {
-                        finalPath = Path.Combine(outputPath, $"{fileName}.{ext}");
+                        finalPath = Path.Combine(outputPath, $"{baseName}.{ext}");
                         int count = 1;
                         
                         while (reservedPaths.Contains(finalPath) || File.Exists(finalPath))
                         {
-                            finalPath = Path.Combine(outputPath, $"{fileName} ({count++}).{ext}");
+                            finalPath = Path.Combine(outputPath, $"{baseName} ({count++}).{ext}");
                         }
                         reservedPaths.Add(finalPath);
                     }
@@ -100,8 +110,6 @@ public static class UltimateImageConverter
                     catch (Exception ex) when (ex is MagickException || ex is InvalidDataException)
                     {
                         // --- ATTEMPT 2: THE BRUTE FORCE DECODER ---
-                        // The engine rejected the file. It is likely a renamed PNG/WebP, or the headers are dirty.
-                        // We will forcefully bypass the auto-detector and jam the bytes into every decoder.
                         bool recovered = false;
                         MagickFormat[] forceFormats = { 
                             MagickFormat.Png, MagickFormat.WebP, MagickFormat.Jpeg, 
@@ -126,14 +134,12 @@ public static class UltimateImageConverter
 
                         if (!recovered)
                         {
-                            // If it still fails, it's either brutally destroyed, or an OS-specific format (like HEIC/AVIF)
                             throw new InvalidDataException(
                                 $"Format Engine Failure: The file '{Path.GetFileName(inputPath)}' is deeply malformed or uses an unsupported codec (like AVIF/HEIC). Even brute-force decoding failed. Original Error: {ex.Message}", ex);
                         }
                     }
 
                     // --- COMPILER FIX & FINAL SAFETY NET ---
-                    // Eliminates "Dereference of a possibly null reference" warning completely.
                     if (image == null)
                     {
                         throw new InvalidOperationException($"CRITICAL: Image processing failed to initialize an object in memory for '{inputPath}'.");
@@ -189,6 +195,19 @@ public static class UltimateImageConverter
         }
 
         return successfulPaths.ToList();
+    }
+
+    private static string SanitizeFileName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "image";
+        }
+
+        char[] invalidChars = Path.GetInvalidFileNameChars();
+        string cleaned = string.Concat(name.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).Trim();
+
+        return string.IsNullOrWhiteSpace(cleaned) ? "image" : cleaned;
     }
 
     private static void ApplyFormatSpecificSettings(MagickImage image, MagickFormat format)

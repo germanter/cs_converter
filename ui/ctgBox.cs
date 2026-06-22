@@ -1,9 +1,12 @@
 
-// // new guy
+// //new guy
 // using System;
 // using System.IO;
 // using System.Linq;
 // using System.Collections.Generic;
+// using System.Threading;
+// using System.Threading.Tasks;
+// using System.Runtime.InteropServices;
 // using Avalonia;
 // using Avalonia.Controls;
 // using Avalonia.Controls.Primitives;
@@ -12,6 +15,7 @@
 // using Avalonia.Input;
 // using Avalonia.Styling;
 // using Avalonia.Data;
+// using Avalonia.Platform.Storage;
 
 // // Namespace imports matching operational parameters and enums
 // using ImageToPdfApp;
@@ -35,19 +39,46 @@
 //         void AddFiles(IEnumerable<string> paths);
 //     }
 
-//     public class CtgBox : Border
+//     // Contract that every category sub-system must implement to mount to the host frame
+//     public interface ICtgTool
+//     {
+//         Control SettingsControl { get; }
+//         bool IsRotationEnabled { get; }
+//         string DefaultFileName { get; }
+//         Task<string> ExecuteAsync(
+//             IReadOnlyList<FileCollectionPanel.FileItem> files,
+//             string saveDirectory,
+//             string filename,
+//             IProgress<double> progress,
+//             CancellationToken cancellationToken);
+//     }
+
+//     public class CtgBox : Border, ICtgToolUI
 //     {
 //         private readonly SolidColorBrush bgBrush;
 //         private readonly SolidColorBrush textBrush;
 //         private readonly FontFamily globalFont;
-//         private ICtgToolUI? _currentUI;
+        
+//         private Grid _rootLayout = null!;
+//         private Border _settingsContainer = null!;
+//         private FileCollectionPanel _fileCollectionPanel = null!;
+        
+//         private ICtgTool? _activeTool;
+//         private string? _saveDirectory;
+//         private string? _outputPath;
+//         private CancellationTokenSource? _cts;
+//         private readonly double MaxFillWidth = 240.0;
 
-//         // Keep original public properties for backward compatibility with external calls
-//         public Border ProgressFill => _currentUI?.ProgressFill!;
-//         public TextBlock PercentText => _currentUI?.PercentText!;
-//         public Button BtnOpen => _currentUI?.BtnOpen!;
-//         public TextBlock TxtFail => _currentUI?.TxtFail!;
-//         public TextBox TxtName => _currentUI?.TxtName!;
+//         // Visual frame references
+//         public Border ProgressFill { get; private set; } = null!;
+//         public TextBlock PercentText { get; private set; } = null!;
+//         public Button BtnOpen { get; private set; } = null!;
+//         public TextBlock TxtFail { get; private set; } = null!;
+//         public TextBox TxtName { get; private set; } = null!;
+
+//         private DateTime _lastOpenClickTime = DateTime.MinValue;
+//         private DateTime _lastOutputClickTime = DateTime.MinValue;
+//         private bool _isFolderPickerOpen = false;
 
 //         public CtgBox(Window parentWindow, SolidColorBrush bg, SolidColorBrush text, FontFamily font)
 //         {
@@ -62,30 +93,419 @@
 //             this.HorizontalAlignment = HorizontalAlignment.Stretch;
 //             this.VerticalAlignment = VerticalAlignment.Stretch;
 
-//             // Load and mount default Image2PdfUI 
-//             var defaultUI = new Image2PdfUI(parentWindow, bgBrush, textBrush, globalFont);
-//             MountUI(defaultUI);
+//             BuildUI(parentWindow);
+
+//             // Mount default system tool
+//             var defaultUI = new Image2PdfUI(bgBrush, textBrush, globalFont);
+//             MountTool(defaultUI);
 //         }
 
-//         public void MountUI(ICtgToolUI toolUI)
+//         // Mounts any compliant settings panel control, handles dynamic layout updates, and retains loaded files
+//         public void MountTool(ICtgTool tool)
 //         {
-//             _currentUI = toolUI;
-//             this.Child = toolUI as Control;
+//             _activeTool = tool;
+//             _settingsContainer.Child = tool.SettingsControl;
+
+//             if (TxtName != null)
+//             {
+//                 TxtName.Text = tool.DefaultFileName;
+//             }
+
+//             ConfigureFileCollectionPanel(tool.IsRotationEnabled);
 //         }
 
-//         public void SetProgress(int? percentage, bool isFail = false)
+//         // Reconfigures File Collection Panel, migrating pre-loaded file lists seamlessly
+//         private void ConfigureFileCollectionPanel(bool isRotationEnabled)
 //         {
-//             _currentUI?.SetProgress(percentage, isFail);
+//             List<string>? existingPaths = null;
+//             if (_fileCollectionPanel != null)
+//             {
+//                 existingPaths = _fileCollectionPanel.FileItems.Select(x => x.FilePath).ToList();
+//                 _rootLayout.Children.Remove(_fileCollectionPanel);
+//             }
+
+//             _fileCollectionPanel = new FileCollectionPanel(bgBrush, textBrush, globalFont, isRotationEnabled);
+//             Grid.SetRow(_fileCollectionPanel, 4);
+//             _rootLayout.Children.Add(_fileCollectionPanel);
+
+//             if (existingPaths != null && existingPaths.Count > 0)
+//             {
+//                 _fileCollectionPanel.AddFiles(existingPaths);
+//             }
 //         }
 
 //         public void AddFiles(IEnumerable<string> paths)
 //         {
-//             _currentUI?.AddFiles(paths);
+//             _fileCollectionPanel.AddFiles(paths, path =>
+//             {
+//                 if (string.IsNullOrEmpty(_saveDirectory))
+//                 {
+//                     _saveDirectory = Path.GetDirectoryName(path) ?? "";
+//                 }
+//             });
 //         }
 
 //         // =========================================================================
-//         // REUSABLE STATIC GRAPHIC HELPERS
+//         // DYNAMIC PROGRESS HANDLER
 //         // =========================================================================
+//         public void SetProgress(int? percentage, bool isFail = false)
+//         {
+//             if (isFail)
+//             {
+//                 ProgressFill.Width = 0;
+//                 PercentText.IsVisible = false;
+//                 BtnOpen.IsVisible = false;
+//                 TxtFail.IsVisible = true;
+//                 return;
+//             }
+
+//             if (percentage == null)
+//             {
+//                 ProgressFill.Width = 0;
+//                 PercentText.Text = "";
+//                 PercentText.IsVisible = true;
+//                 BtnOpen.IsVisible = false;
+//                 TxtFail.IsVisible = false;
+//                 return;
+//             }
+
+//             int p = Math.Max(0, Math.Min(100, percentage.Value));
+//             ProgressFill.Width = (p / 100.0) * MaxFillWidth;
+
+//             if (p >= 100 && !CentralController.isRunning)
+//             {
+//                 PercentText.IsVisible = false;
+//                 TxtFail.IsVisible = false;
+//                 BtnOpen.IsVisible = true;
+//             }
+//             else
+//             {
+//                 PercentText.Text = $"{p}%";
+//                 PercentText.IsVisible = true;
+//                 BtnOpen.IsVisible = false;
+//                 TxtFail.IsVisible = false;
+//             }
+//         }
+
+//         // =========================================================================
+//         // FILE LOCATION DIRECTORY/FILE NATIVE OPEN SYSTEM WITH COOL-DOWN & SILENT FAIL
+//         // =========================================================================
+//         private void HandleOpenClicked()
+//         {
+//             if ((DateTime.Now - _lastOpenClickTime).TotalMilliseconds < 1500) return;
+//             _lastOpenClickTime = DateTime.Now;
+
+//             try
+//             {
+//                 if (string.IsNullOrEmpty(_outputPath)) return;
+
+//                 bool isDirectory = Directory.Exists(_outputPath);
+//                 bool isFile = File.Exists(_outputPath);
+
+//                 // If path is completely missing, silently discard to prevent crashes
+//                 if (!isDirectory && !isFile) return;
+
+//                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+//                 {
+//                     if (isDirectory)
+//                     {
+//                         System.Diagnostics.Process.Start("explorer.exe", $"\"{_outputPath}\"");
+//                     }
+//                     else
+//                     {
+//                         System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{_outputPath}\"");
+//                     }
+//                 }
+//                 else
+//                 {
+//                     // Fallback folder handling for Unix/macOS environments
+//                     string targetDir = isDirectory ? _outputPath : Path.GetDirectoryName(_outputPath)!;
+//                     if (!string.IsNullOrEmpty(targetDir) && Directory.Exists(targetDir))
+//                     {
+//                         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+//                         {
+//                             FileName = targetDir,
+//                             UseShellExecute = true
+//                         });
+//                     }
+//                 }
+//             }
+//             catch
+//             {
+//                 // Silent catch block - ensures complete silent execution on any I/O errors or platform restrictions
+//             }
+//         }
+
+//         private async Task OpenFolderPickerAsync(Window parentWindow)
+//         {
+//             if ((DateTime.Now - _lastOutputClickTime).TotalMilliseconds < 500) return;
+//             if (_isFolderPickerOpen) return;
+
+//             _lastOutputClickTime = DateTime.Now;
+//             _isFolderPickerOpen = true;
+
+//             try
+//             {
+//                 var folders = await parentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+//                 {
+//                     Title = "Select Output Directory",
+//                     AllowMultiple = false
+//                 });
+
+//                 if (folders != null && folders.Count > 0)
+//                 {
+//                     _saveDirectory = folders[0].Path.LocalPath;
+//                 }
+//             }
+//             catch (Exception)
+//             {
+//                 // Safely catch
+//             }
+//             finally
+//             {
+//                 _isFolderPickerOpen = false;
+//             }
+//         }
+
+//         private async void OnStartClicked()
+//         {
+//             if (CentralController.isRunning) return;
+//             if (_activeTool == null) return;
+//             if (_fileCollectionPanel.FileItems.Count == 0) return;
+
+//             _cts = new CancellationTokenSource();
+//             SetProgress(0);
+
+//             string outDir = _saveDirectory ?? Directory.GetCurrentDirectory();
+//             string filename = TxtName.Text ?? _activeTool.DefaultFileName;
+//             if (string.IsNullOrWhiteSpace(filename)) filename = _activeTool.DefaultFileName;
+
+//             try
+//             {
+//                 var progressReporter = new Progress<double>(val =>
+//                 {
+//                     int pct = (int)(val <= 1.0 ? val * 100 : val);
+//                     SetProgress(pct);
+//                 });
+
+//                 // Delegates raw job execution task dynamically to the loaded module
+//                 _outputPath = await _activeTool.ExecuteAsync(
+//                     _fileCollectionPanel.FileItems,
+//                     outDir,
+//                     filename,
+//                     progressReporter,
+//                     _cts.Token
+//                 );
+
+//                 if (!string.IsNullOrEmpty(_outputPath))
+//                 {
+//                     SetProgress(100);
+//                 }
+//                 else
+//                 {
+//                     SetProgress(null, isFail: true);
+//                 }
+//             }
+//             catch (OperationCanceledException)
+//             {
+//                 SetProgress(null);
+//             }
+//             catch (Exception)
+//             {
+//                 SetProgress(null, isFail: true);
+//             }
+//             finally
+//             {
+//                 _cts?.Dispose();
+//                 _cts = null;
+//             }
+//         }
+
+//         private void BuildUI(Window parentWindow)
+//         {
+//             _rootLayout = new Grid();
+//             _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 0: Top bar
+//             _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 1: Upper Divider Line
+//             _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 2: Settings Container
+//             _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 3: Lower Divider Line
+//             _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Star)); // Row 4: Draggable Collection Panel
+
+//             // ==========================================
+//             // ROW 0: TOP BAR PANEL
+//             // ==========================================
+//             var topBarGrid = new Grid { VerticalAlignment = VerticalAlignment.Center };
+//             topBarGrid.ColumnDefinitions.AddRange(new[]
+//             {
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 0: START
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 1: END
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 2: Progress Outer
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 3: Status Container
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 4: OUTPUT
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 5: clear all
+//                 new ColumnDefinition { Width = GridLength.Auto }, // 6: NAME
+//                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // 7: TxtName
+//             });
+
+//             var btnStart = CreateStrictButtonStatic("START", bgBrush, textBrush, globalFont);
+//             btnStart.Click += (s, e) => OnStartClicked();
+
+//             var btnEnd = CreateStrictButtonStatic("END", bgBrush, textBrush, globalFont);
+//             btnEnd.Click += (s, e) => _cts?.Cancel();
+
+//             var progressBoxOuter = new Border
+//             {
+//                 BorderBrush = textBrush,
+//                 BorderThickness = new Thickness(2),
+//                 Background = bgBrush,
+//                 Width = 250,
+//                 Height = 35,
+//                 Padding = new Thickness(3)
+//             };
+
+//             ProgressFill = new Border
+//             {
+//                 Background = textBrush,
+//                 HorizontalAlignment = HorizontalAlignment.Left,
+//                 Width = 0
+//             };
+//             progressBoxOuter.Child = ProgressFill;
+
+//             var statusContainer = new Grid { Width = 90 };
+//             PercentText = new TextBlock
+//             {
+//                 Foreground = textBrush,
+//                 FontFamily = globalFont,
+//                 FontSize = 20,
+//                 HorizontalAlignment = HorizontalAlignment.Center,
+//                 VerticalAlignment = VerticalAlignment.Center
+//             };
+
+//             BtnOpen = CreateStrictButtonStatic("OPEN", bgBrush, textBrush, globalFont);
+//             BtnOpen.HorizontalAlignment = HorizontalAlignment.Center;
+//             BtnOpen.IsVisible = false;
+//             BtnOpen.Click += (s, e) => HandleOpenClicked();
+
+//             TxtFail = new TextBlock
+//             {
+//                 Text = "FAIL",
+//                 Foreground = textBrush,
+//                 FontFamily = globalFont,
+//                 FontSize = 20,
+//                 FontWeight = FontWeight.Bold,
+//                 HorizontalAlignment = HorizontalAlignment.Center,
+//                 VerticalAlignment = VerticalAlignment.Center,
+//                 IsVisible = false
+//             };
+
+//             statusContainer.Children.Add(PercentText);
+//             statusContainer.Children.Add(BtnOpen);
+//             statusContainer.Children.Add(TxtFail);
+
+//             var btnOutput = CreateStrictButtonStatic("OUTPUT", bgBrush, textBrush, globalFont);
+//             btnOutput.Click += async (s, e) => await OpenFolderPickerAsync(parentWindow);
+
+//             var btnClearAll = new TextBlock
+//             {
+//                 Text = "[ clear all ]",
+//                 Foreground = textBrush,
+//                 FontFamily = globalFont,
+//                 FontSize = 16,
+//                 VerticalAlignment = VerticalAlignment.Center,
+//                 Cursor = new Cursor(StandardCursorType.Hand)
+//             };
+//             btnClearAll.PointerPressed += (s, e) =>
+//             {
+//                 _fileCollectionPanel?.Clear();
+//                 SetProgress(null);
+//             };
+
+//             var lblName = new TextBlock
+//             {
+//                 Text = "NAME",
+//                 Foreground = textBrush,
+//                 FontFamily = globalFont,
+//                 FontSize = 16,
+//                 VerticalAlignment = VerticalAlignment.Center
+//             };
+
+//             TxtName = CreateStrictTextBoxStatic("document", bgBrush, textBrush, globalFont);
+
+//             Grid.SetColumn(btnStart, 0);
+//             Grid.SetColumn(btnEnd, 1);
+//             Grid.SetColumn(progressBoxOuter, 2);
+//             Grid.SetColumn(statusContainer, 3);
+//             Grid.SetColumn(btnOutput, 4);
+//             Grid.SetColumn(btnClearAll, 5);
+//             Grid.SetColumn(lblName, 6);
+//             Grid.SetColumn(TxtName, 7);
+
+//             btnStart.Margin = new Thickness(0, 0, 15, 0);
+//             btnEnd.Margin = new Thickness(0, 0, 15, 0);
+//             progressBoxOuter.Margin = new Thickness(0, 0, 15, 0);
+//             statusContainer.Margin = new Thickness(0, 0, 15, 0);
+//             btnOutput.Margin = new Thickness(0, 0, 15, 0);
+//             btnClearAll.Margin = new Thickness(0, 0, 15, 0);
+//             lblName.Margin = new Thickness(0, 0, 15, 0);
+
+//             btnStart.VerticalAlignment = VerticalAlignment.Center;
+//             btnEnd.VerticalAlignment = VerticalAlignment.Center;
+//             progressBoxOuter.VerticalAlignment = VerticalAlignment.Center;
+//             statusContainer.VerticalAlignment = VerticalAlignment.Center;
+//             btnOutput.VerticalAlignment = VerticalAlignment.Center;
+
+//             topBarGrid.Children.Add(btnStart);
+//             topBarGrid.Children.Add(btnEnd);
+//             topBarGrid.Children.Add(progressBoxOuter);
+//             topBarGrid.Children.Add(statusContainer);
+//             topBarGrid.Children.Add(btnOutput);
+//             topBarGrid.Children.Add(btnClearAll);
+//             topBarGrid.Children.Add(lblName);
+//             topBarGrid.Children.Add(TxtName);
+
+//             Grid.SetRow(topBarGrid, 0);
+//             _rootLayout.Children.Add(topBarGrid);
+
+//             // ==========================================
+//             // ROW 1: UPPER DIVIDER LINE
+//             // ==========================================
+//             var divider1 = new Border
+//             {
+//                 Height = 4,
+//                 Background = textBrush,
+//                 Margin = new Thickness(-15, 10, -15, 10)
+//             };
+//             Grid.SetRow(divider1, 1);
+//             _rootLayout.Children.Add(divider1);
+
+//             // ==========================================
+//             // ROW 2: PARAMETERS SETTINGS PANEL INJECTION
+//             // ==========================================
+//             _settingsContainer = new Border
+//             {
+//                 HorizontalAlignment = HorizontalAlignment.Stretch,
+//                 VerticalAlignment = VerticalAlignment.Stretch
+//             };
+//             Grid.SetRow(_settingsContainer, 2);
+//             _rootLayout.Children.Add(_settingsContainer);
+
+//             // ==========================================
+//             // ROW 3: LOWER DIVIDER LINE
+//             // ==========================================
+//             var divider2 = new Border
+//             {
+//                 Height = 4,
+//                 Background = textBrush,
+//                 Margin = new Thickness(-15, 10, -15, 15)
+//             };
+//             Grid.SetRow(divider2, 3);
+//             _rootLayout.Children.Add(divider2);
+
+//             this.Child = _rootLayout;
+//         }
+
+//         // ==========================================
+//         // UI GRAPHICS HELPERS
+//         // ==========================================
 //         public static Button CreateIconButtonStatic(Assets.IconData icon, double size, IBrush bgBrush, IBrush textBrush, Action onClick)
 //         {
 //             var btn = new Button { Cursor = new Cursor(StandardCursorType.Hand) };
@@ -309,12 +729,10 @@
 //         private bool IsFlowBefore(Point pt1, Point pt2, double rowHeight)
 //         {
 //             double yDiff = pt1.Y - pt2.Y;
-//             // If vertical gap is larger than half of the row height, evaluate vertical orientation
 //             if (Math.Abs(yDiff) > rowHeight * 0.5)
 //             {
 //                 return yDiff < 0;
 //             }
-//             // If they are on the same vertical level, evaluate horizontal orientation
 //             return pt1.X < pt2.X;
 //         }
 
@@ -393,7 +811,6 @@
 //                     double currentY = bounds.Y + bounds.Height / 2 + offsetY;
 //                     var currentCenter = new Point(currentX, currentY);
 
-//                     // Filter list to find positions relative to other static tiles
 //                     var otherItems = _fileItems.Where(x => x != _draggedItem).ToList();
 //                     int targetIndex = -1;
 
@@ -405,7 +822,6 @@
 //                         double otherY = otherBounds.Y + otherBounds.Height / 2;
 //                         var otherCenter = new Point(otherX, otherY);
 
-//                         // Layout heights consist of 120px + 15px margin = 135px row threshold
 //                         if (IsFlowBefore(currentCenter, otherCenter, 135.0))
 //                         {
 //                             targetIndex = i;
@@ -431,7 +847,6 @@
 //                 }
 //             };
 
-//             // Tile Delete Button (Top Right)
 //             var btnClose = CtgBox.CreateIconButtonStatic(Assets.CancelIcon, 12, _bgBrush, _textBrush, () =>
 //             {
 //                 _fileItems.Remove(item);
@@ -443,7 +858,6 @@
 //             Grid.SetRow(btnClose, 0);
 //             grid.Children.Add(btnClose);
 
-//             // Center icon (rotatable when enabled)
 //             var imageIcon = CtgBox.CreateSvgIconStatic(Assets.ImageIcon, 40, _bgBrush, _textBrush);
 //             imageIcon.HorizontalAlignment = HorizontalAlignment.Center;
 //             imageIcon.VerticalAlignment = VerticalAlignment.Center;
@@ -455,7 +869,6 @@
 //             Grid.SetRow(imageIcon, 1);
 //             grid.Children.Add(imageIcon);
 
-//             // Bottom metadata bar
 //             var bottomGrid = new Grid();
 //             bottomGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 //             bottomGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
@@ -565,7 +978,6 @@
 //                     VerticalAlignment = VerticalAlignment.Center
 //                 };
 
-//                 // Establishes real-time programmatic binding to ensure dynamic updates work properly
 //                 textBlock.Bind(TextBlock.TextProperty, new Binding
 //                 {
 //                     Source = control,
@@ -786,8 +1198,7 @@
 
 
 
-
-//new guy
+// new guy
 using System;
 using System.IO;
 using System.Linq;
@@ -805,7 +1216,6 @@ using Avalonia.Styling;
 using Avalonia.Data;
 using Avalonia.Platform.Storage;
 
-// Namespace imports matching operational parameters and enums
 using ImageToPdfApp;
 using PdfEngine;
 using PdfUtilities;
@@ -815,7 +1225,7 @@ using CentralGateway;
 
 namespace convix
 {
-    // Interface to allow any future tool UI to integrate smoothly into CtgBox
+    // Common interface for the top bar and state interaction
     public interface ICtgToolUI
     {
         Border ProgressFill { get; }
@@ -827,46 +1237,19 @@ namespace convix
         void AddFiles(IEnumerable<string> paths);
     }
 
-    // Contract that every category sub-system must implement to mount to the host frame
-    public interface ICtgTool
-    {
-        Control SettingsControl { get; }
-        bool IsRotationEnabled { get; }
-        string DefaultFileName { get; }
-        Task<string> ExecuteAsync(
-            IReadOnlyList<FileCollectionPanel.FileItem> files,
-            string saveDirectory,
-            string filename,
-            IProgress<double> progress,
-            CancellationToken cancellationToken);
-    }
-
-    public class CtgBox : Border, ICtgToolUI
+    // Lightweight container that hosts the active tool view control
+    public class CtgBox : Border
     {
         private readonly SolidColorBrush bgBrush;
         private readonly SolidColorBrush textBrush;
         private readonly FontFamily globalFont;
-        
-        private Grid _rootLayout = null!;
-        private Border _settingsContainer = null!;
-        private FileCollectionPanel _fileCollectionPanel = null!;
-        
-        private ICtgTool? _activeTool;
-        private string? _saveDirectory;
-        private string? _outputPath;
-        private CancellationTokenSource? _cts;
-        private readonly double MaxFillWidth = 240.0;
+        private ICtgToolUI? _currentUI;
 
-        // Visual frame references
-        public Border ProgressFill { get; private set; } = null!;
-        public TextBlock PercentText { get; private set; } = null!;
-        public Button BtnOpen { get; private set; } = null!;
-        public TextBlock TxtFail { get; private set; } = null!;
-        public TextBox TxtName { get; private set; } = null!;
-
-        private DateTime _lastOpenClickTime = DateTime.MinValue;
-        private DateTime _lastOutputClickTime = DateTime.MinValue;
-        private bool _isFolderPickerOpen = false;
+        public Border ProgressFill => _currentUI?.ProgressFill!;
+        public TextBlock PercentText => _currentUI?.PercentText!;
+        public Button BtnOpen => _currentUI?.BtnOpen!;
+        public TextBlock TxtFail => _currentUI?.TxtFail!;
+        public TextBox TxtName => _currentUI?.TxtName!;
 
         public CtgBox(Window parentWindow, SolidColorBrush bg, SolidColorBrush text, FontFamily font)
         {
@@ -880,415 +1263,22 @@ namespace convix
             this.Padding = new Thickness(15);
             this.HorizontalAlignment = HorizontalAlignment.Stretch;
             this.VerticalAlignment = VerticalAlignment.Stretch;
-
-            BuildUI(parentWindow);
-
-            // Mount default system tool
-            var defaultUI = new Image2PdfUI(bgBrush, textBrush, globalFont);
-            MountTool(defaultUI);
         }
 
-        // Mounts any compliant settings panel control, handles dynamic layout updates, and retains loaded files
-        public void MountTool(ICtgTool tool)
+        public void MountUI(ICtgToolUI toolUI)
         {
-            _activeTool = tool;
-            _settingsContainer.Child = tool.SettingsControl;
-
-            if (TxtName != null)
-            {
-                TxtName.Text = tool.DefaultFileName;
-            }
-
-            ConfigureFileCollectionPanel(tool.IsRotationEnabled);
+            _currentUI = toolUI;
+            this.Child = toolUI as Control;
         }
 
-        // Reconfigures File Collection Panel, migrating pre-loaded file lists seamlessly
-        private void ConfigureFileCollectionPanel(bool isRotationEnabled)
+        public void SetProgress(int? percentage, bool isFail = false)
         {
-            List<string>? existingPaths = null;
-            if (_fileCollectionPanel != null)
-            {
-                existingPaths = _fileCollectionPanel.FileItems.Select(x => x.FilePath).ToList();
-                _rootLayout.Children.Remove(_fileCollectionPanel);
-            }
-
-            _fileCollectionPanel = new FileCollectionPanel(bgBrush, textBrush, globalFont, isRotationEnabled);
-            Grid.SetRow(_fileCollectionPanel, 4);
-            _rootLayout.Children.Add(_fileCollectionPanel);
-
-            if (existingPaths != null && existingPaths.Count > 0)
-            {
-                _fileCollectionPanel.AddFiles(existingPaths);
-            }
+            _currentUI?.SetProgress(percentage, isFail);
         }
 
         public void AddFiles(IEnumerable<string> paths)
         {
-            _fileCollectionPanel.AddFiles(paths, path =>
-            {
-                if (string.IsNullOrEmpty(_saveDirectory))
-                {
-                    _saveDirectory = Path.GetDirectoryName(path) ?? "";
-                }
-            });
-        }
-
-        // =========================================================================
-        // DYNAMIC PROGRESS HANDLER
-        // =========================================================================
-        public void SetProgress(int? percentage, bool isFail = false)
-        {
-            if (isFail)
-            {
-                ProgressFill.Width = 0;
-                PercentText.IsVisible = false;
-                BtnOpen.IsVisible = false;
-                TxtFail.IsVisible = true;
-                return;
-            }
-
-            if (percentage == null)
-            {
-                ProgressFill.Width = 0;
-                PercentText.Text = "";
-                PercentText.IsVisible = true;
-                BtnOpen.IsVisible = false;
-                TxtFail.IsVisible = false;
-                return;
-            }
-
-            int p = Math.Max(0, Math.Min(100, percentage.Value));
-            ProgressFill.Width = (p / 100.0) * MaxFillWidth;
-
-            if (p >= 100 && !CentralController.isRunning)
-            {
-                PercentText.IsVisible = false;
-                TxtFail.IsVisible = false;
-                BtnOpen.IsVisible = true;
-            }
-            else
-            {
-                PercentText.Text = $"{p}%";
-                PercentText.IsVisible = true;
-                BtnOpen.IsVisible = false;
-                TxtFail.IsVisible = false;
-            }
-        }
-
-        // =========================================================================
-        // FILE LOCATION DIRECTORY/FILE NATIVE OPEN SYSTEM WITH COOL-DOWN & SILENT FAIL
-        // =========================================================================
-        private void HandleOpenClicked()
-        {
-            if ((DateTime.Now - _lastOpenClickTime).TotalMilliseconds < 500) return;
-            _lastOpenClickTime = DateTime.Now;
-
-            try
-            {
-                if (string.IsNullOrEmpty(_outputPath)) return;
-
-                bool isDirectory = Directory.Exists(_outputPath);
-                bool isFile = File.Exists(_outputPath);
-
-                // If path is completely missing, silently discard to prevent crashes
-                if (!isDirectory && !isFile) return;
-
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    if (isDirectory)
-                    {
-                        System.Diagnostics.Process.Start("explorer.exe", $"\"{_outputPath}\"");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{_outputPath}\"");
-                    }
-                }
-                else
-                {
-                    // Fallback folder handling for Unix/macOS environments
-                    string targetDir = isDirectory ? _outputPath : Path.GetDirectoryName(_outputPath)!;
-                    if (!string.IsNullOrEmpty(targetDir) && Directory.Exists(targetDir))
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = targetDir,
-                            UseShellExecute = true
-                        });
-                    }
-                }
-            }
-            catch
-            {
-                // Silent catch block - ensures complete silent execution on any I/O errors or platform restrictions
-            }
-        }
-
-        private async Task OpenFolderPickerAsync(Window parentWindow)
-        {
-            if ((DateTime.Now - _lastOutputClickTime).TotalMilliseconds < 500) return;
-            if (_isFolderPickerOpen) return;
-
-            _lastOutputClickTime = DateTime.Now;
-            _isFolderPickerOpen = true;
-
-            try
-            {
-                var folders = await parentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-                {
-                    Title = "Select Output Directory",
-                    AllowMultiple = false
-                });
-
-                if (folders != null && folders.Count > 0)
-                {
-                    _saveDirectory = folders[0].Path.LocalPath;
-                }
-            }
-            catch (Exception)
-            {
-                // Safely catch
-            }
-            finally
-            {
-                _isFolderPickerOpen = false;
-            }
-        }
-
-        private async void OnStartClicked()
-        {
-            if (CentralController.isRunning) return;
-            if (_activeTool == null) return;
-            if (_fileCollectionPanel.FileItems.Count == 0) return;
-
-            _cts = new CancellationTokenSource();
-            SetProgress(0);
-
-            string outDir = _saveDirectory ?? Directory.GetCurrentDirectory();
-            string filename = TxtName.Text ?? _activeTool.DefaultFileName;
-            if (string.IsNullOrWhiteSpace(filename)) filename = _activeTool.DefaultFileName;
-
-            try
-            {
-                var progressReporter = new Progress<double>(val =>
-                {
-                    int pct = (int)(val <= 1.0 ? val * 100 : val);
-                    SetProgress(pct);
-                });
-
-                // Delegates raw job execution task dynamically to the loaded module
-                _outputPath = await _activeTool.ExecuteAsync(
-                    _fileCollectionPanel.FileItems,
-                    outDir,
-                    filename,
-                    progressReporter,
-                    _cts.Token
-                );
-
-                if (!string.IsNullOrEmpty(_outputPath))
-                {
-                    SetProgress(100);
-                }
-                else
-                {
-                    SetProgress(null, isFail: true);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                SetProgress(null);
-            }
-            catch (Exception)
-            {
-                SetProgress(null, isFail: true);
-            }
-            finally
-            {
-                _cts?.Dispose();
-                _cts = null;
-            }
-        }
-
-        private void BuildUI(Window parentWindow)
-        {
-            _rootLayout = new Grid();
-            _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 0: Top bar
-            _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 1: Upper Divider Line
-            _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 2: Settings Container
-            _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 3: Lower Divider Line
-            _rootLayout.RowDefinitions.Add(new RowDefinition(GridLength.Star)); // Row 4: Draggable Collection Panel
-
-            // ==========================================
-            // ROW 0: TOP BAR PANEL
-            // ==========================================
-            var topBarGrid = new Grid { VerticalAlignment = VerticalAlignment.Center };
-            topBarGrid.ColumnDefinitions.AddRange(new[]
-            {
-                new ColumnDefinition { Width = GridLength.Auto }, // 0: START
-                new ColumnDefinition { Width = GridLength.Auto }, // 1: END
-                new ColumnDefinition { Width = GridLength.Auto }, // 2: Progress Outer
-                new ColumnDefinition { Width = GridLength.Auto }, // 3: Status Container
-                new ColumnDefinition { Width = GridLength.Auto }, // 4: OUTPUT
-                new ColumnDefinition { Width = GridLength.Auto }, // 5: clear all
-                new ColumnDefinition { Width = GridLength.Auto }, // 6: NAME
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // 7: TxtName
-            });
-
-            var btnStart = CreateStrictButtonStatic("START", bgBrush, textBrush, globalFont);
-            btnStart.Click += (s, e) => OnStartClicked();
-
-            var btnEnd = CreateStrictButtonStatic("END", bgBrush, textBrush, globalFont);
-            btnEnd.Click += (s, e) => _cts?.Cancel();
-
-            var progressBoxOuter = new Border
-            {
-                BorderBrush = textBrush,
-                BorderThickness = new Thickness(2),
-                Background = bgBrush,
-                Width = 250,
-                Height = 35,
-                Padding = new Thickness(3)
-            };
-
-            ProgressFill = new Border
-            {
-                Background = textBrush,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                Width = 0
-            };
-            progressBoxOuter.Child = ProgressFill;
-
-            var statusContainer = new Grid { Width = 90 };
-            PercentText = new TextBlock
-            {
-                Foreground = textBrush,
-                FontFamily = globalFont,
-                FontSize = 20,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            BtnOpen = CreateStrictButtonStatic("OPEN", bgBrush, textBrush, globalFont);
-            BtnOpen.HorizontalAlignment = HorizontalAlignment.Center;
-            BtnOpen.IsVisible = false;
-            BtnOpen.Click += (s, e) => HandleOpenClicked();
-
-            TxtFail = new TextBlock
-            {
-                Text = "FAIL",
-                Foreground = textBrush,
-                FontFamily = globalFont,
-                FontSize = 20,
-                FontWeight = FontWeight.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                IsVisible = false
-            };
-
-            statusContainer.Children.Add(PercentText);
-            statusContainer.Children.Add(BtnOpen);
-            statusContainer.Children.Add(TxtFail);
-
-            var btnOutput = CreateStrictButtonStatic("OUTPUT", bgBrush, textBrush, globalFont);
-            btnOutput.Click += async (s, e) => await OpenFolderPickerAsync(parentWindow);
-
-            var btnClearAll = new TextBlock
-            {
-                Text = "[ clear all ]",
-                Foreground = textBrush,
-                FontFamily = globalFont,
-                FontSize = 16,
-                VerticalAlignment = VerticalAlignment.Center,
-                Cursor = new Cursor(StandardCursorType.Hand)
-            };
-            btnClearAll.PointerPressed += (s, e) =>
-            {
-                _fileCollectionPanel?.Clear();
-                SetProgress(null);
-            };
-
-            var lblName = new TextBlock
-            {
-                Text = "NAME",
-                Foreground = textBrush,
-                FontFamily = globalFont,
-                FontSize = 16,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            TxtName = CreateStrictTextBoxStatic("document", bgBrush, textBrush, globalFont);
-
-            Grid.SetColumn(btnStart, 0);
-            Grid.SetColumn(btnEnd, 1);
-            Grid.SetColumn(progressBoxOuter, 2);
-            Grid.SetColumn(statusContainer, 3);
-            Grid.SetColumn(btnOutput, 4);
-            Grid.SetColumn(btnClearAll, 5);
-            Grid.SetColumn(lblName, 6);
-            Grid.SetColumn(TxtName, 7);
-
-            btnStart.Margin = new Thickness(0, 0, 15, 0);
-            btnEnd.Margin = new Thickness(0, 0, 15, 0);
-            progressBoxOuter.Margin = new Thickness(0, 0, 15, 0);
-            statusContainer.Margin = new Thickness(0, 0, 15, 0);
-            btnOutput.Margin = new Thickness(0, 0, 15, 0);
-            btnClearAll.Margin = new Thickness(0, 0, 15, 0);
-            lblName.Margin = new Thickness(0, 0, 15, 0);
-
-            btnStart.VerticalAlignment = VerticalAlignment.Center;
-            btnEnd.VerticalAlignment = VerticalAlignment.Center;
-            progressBoxOuter.VerticalAlignment = VerticalAlignment.Center;
-            statusContainer.VerticalAlignment = VerticalAlignment.Center;
-            btnOutput.VerticalAlignment = VerticalAlignment.Center;
-
-            topBarGrid.Children.Add(btnStart);
-            topBarGrid.Children.Add(btnEnd);
-            topBarGrid.Children.Add(progressBoxOuter);
-            topBarGrid.Children.Add(statusContainer);
-            topBarGrid.Children.Add(btnOutput);
-            topBarGrid.Children.Add(btnClearAll);
-            topBarGrid.Children.Add(lblName);
-            topBarGrid.Children.Add(TxtName);
-
-            Grid.SetRow(topBarGrid, 0);
-            _rootLayout.Children.Add(topBarGrid);
-
-            // ==========================================
-            // ROW 1: UPPER DIVIDER LINE
-            // ==========================================
-            var divider1 = new Border
-            {
-                Height = 4,
-                Background = textBrush,
-                Margin = new Thickness(-15, 10, -15, 10)
-            };
-            Grid.SetRow(divider1, 1);
-            _rootLayout.Children.Add(divider1);
-
-            // ==========================================
-            // ROW 2: PARAMETERS SETTINGS PANEL INJECTION
-            // ==========================================
-            _settingsContainer = new Border
-            {
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch
-            };
-            Grid.SetRow(_settingsContainer, 2);
-            _rootLayout.Children.Add(_settingsContainer);
-
-            // ==========================================
-            // ROW 3: LOWER DIVIDER LINE
-            // ==========================================
-            var divider2 = new Border
-            {
-                Height = 4,
-                Background = textBrush,
-                Margin = new Thickness(-15, 10, -15, 15)
-            };
-            Grid.SetRow(divider2, 3);
-            _rootLayout.Children.Add(divider2);
-
-            this.Child = _rootLayout;
+            _currentUI?.AddFiles(paths);
         }
 
         // ==========================================
@@ -1430,6 +1420,403 @@ namespace convix
     }
 
     // =========================================================================
+    // BASE OOP CLASS: ENCAPSULATES TOP BAR, DIVIDERS, DROP PANEL AND FILE OPENER
+    // =========================================================================
+    public abstract class CtgToolBase : Grid, ICtgToolUI
+    {
+        protected readonly SolidColorBrush bgBrush;
+        protected readonly SolidColorBrush textBrush;
+        protected readonly FontFamily globalFont;
+        protected readonly Window parentWindow;
+
+        public Border ProgressFill { get; private set; } = null!;
+        public TextBlock PercentText { get; private set; } = null!;
+        public Button BtnOpen { get; private set; } = null!;
+        public TextBlock TxtFail { get; private set; } = null!;
+        public TextBox TxtName { get; private set; } = null!;
+
+        protected FileCollectionPanel FileCollection { get; private set; } = null!;
+        private string? _saveDirectory;
+        private string? _outputPath;
+        private CancellationTokenSource? _cts;
+        private readonly double MaxFillWidth = 240.0;
+        private DateTime _lastOpenClickTime = DateTime.MinValue;
+        private DateTime _lastOutputClickTime = DateTime.MinValue;
+        private bool _isFolderPickerOpen = false;
+
+        protected abstract Control CreateSettingsControl();
+        protected abstract bool IsRotationEnabled { get; }
+        public abstract string DefaultFileName { get; }
+        protected abstract Task<string> OnExecuteAsync(
+            IReadOnlyList<FileCollectionPanel.FileItem> files,
+            string saveDirectory,
+            string filename,
+            IProgress<double> progress,
+            CancellationToken cancellationToken);
+
+        protected CtgToolBase(Window parentWindow, SolidColorBrush bg, SolidColorBrush text, FontFamily font)
+        {
+            this.parentWindow = parentWindow;
+            this.bgBrush = bg;
+            this.textBrush = text;
+            this.globalFont = font;
+        }
+
+        protected void InitializeBase()
+        {
+            this.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 0: Top bar
+            this.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 1: Line break
+            this.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 2: Settings control
+            this.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); // Row 3: Line break
+            this.RowDefinitions.Add(new RowDefinition(GridLength.Star)); // Row 4: File Collection list
+
+            // ==========================================
+            // ROW 0: TOP BAR PANEL
+            // ==========================================
+            var topBarGrid = new Grid { VerticalAlignment = VerticalAlignment.Center };
+            topBarGrid.ColumnDefinitions.AddRange(new[]
+            {
+                new ColumnDefinition { Width = GridLength.Auto }, // START
+                new ColumnDefinition { Width = GridLength.Auto }, // END
+                new ColumnDefinition { Width = GridLength.Auto }, // Progress Outer
+                new ColumnDefinition { Width = GridLength.Auto }, // Status Container
+                new ColumnDefinition { Width = GridLength.Auto }, // OUTPUT
+                new ColumnDefinition { Width = GridLength.Auto }, // clear all
+                new ColumnDefinition { Width = GridLength.Auto }, // NAME
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } // TxtName
+            });
+
+            var btnStart = CtgBox.CreateStrictButtonStatic("START", bgBrush, textBrush, globalFont);
+            btnStart.Click += (s, e) => OnStartClicked();
+
+            var btnEnd = CtgBox.CreateStrictButtonStatic("END", bgBrush, textBrush, globalFont);
+            btnEnd.Click += (s, e) => _cts?.Cancel();
+
+            var progressBoxOuter = new Border
+            {
+                BorderBrush = textBrush,
+                BorderThickness = new Thickness(2),
+                Background = bgBrush,
+                Width = 250,
+                Height = 35,
+                Padding = new Thickness(3)
+            };
+
+            ProgressFill = new Border
+            {
+                Background = textBrush,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Width = 0
+            };
+            progressBoxOuter.Child = ProgressFill;
+
+            var statusContainer = new Grid { Width = 90 };
+            PercentText = new TextBlock
+            {
+                Foreground = textBrush,
+                FontFamily = globalFont,
+                FontSize = 20,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            BtnOpen = CtgBox.CreateStrictButtonStatic("OPEN", bgBrush, textBrush, globalFont);
+            BtnOpen.HorizontalAlignment = HorizontalAlignment.Center;
+            BtnOpen.IsVisible = false;
+            BtnOpen.Click += (s, e) => HandleOpenClicked();
+
+            TxtFail = new TextBlock
+            {
+                Text = "FAIL",
+                Foreground = textBrush,
+                FontFamily = globalFont,
+                FontSize = 20,
+                FontWeight = FontWeight.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsVisible = false
+            };
+
+            statusContainer.Children.Add(PercentText);
+            statusContainer.Children.Add(BtnOpen);
+            statusContainer.Children.Add(TxtFail);
+
+            var btnOutput = CtgBox.CreateStrictButtonStatic("OUTPUT", bgBrush, textBrush, globalFont);
+            btnOutput.Click += async (s, e) => await OpenFolderPickerAsync();
+
+            var btnClearAll = new TextBlock
+            {
+                Text = "[ clear all ]",
+                Foreground = textBrush,
+                FontFamily = globalFont,
+                FontSize = 16,
+                VerticalAlignment = VerticalAlignment.Center,
+                Cursor = new Cursor(StandardCursorType.Hand)
+            };
+            btnClearAll.PointerPressed += (s, e) =>
+            {
+                FileCollection.Clear();
+                SetProgress(null);
+            };
+
+            var lblName = new TextBlock
+            {
+                Text = "NAME",
+                Foreground = textBrush,
+                FontFamily = globalFont,
+                FontSize = 16,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            TxtName = CtgBox.CreateStrictTextBoxStatic(DefaultFileName, bgBrush, textBrush, globalFont);
+
+            Grid.SetColumn(btnStart, 0);
+            Grid.SetColumn(btnEnd, 1);
+            Grid.SetColumn(progressBoxOuter, 2);
+            Grid.SetColumn(statusContainer, 3);
+            Grid.SetColumn(btnOutput, 4);
+            Grid.SetColumn(btnClearAll, 5);
+            Grid.SetColumn(lblName, 6);
+            Grid.SetColumn(TxtName, 7);
+
+            btnStart.Margin = new Thickness(0, 0, 15, 0);
+            btnEnd.Margin = new Thickness(0, 0, 15, 0);
+            progressBoxOuter.Margin = new Thickness(0, 0, 15, 0);
+            statusContainer.Margin = new Thickness(0, 0, 15, 0);
+            btnOutput.Margin = new Thickness(0, 0, 15, 0);
+            btnClearAll.Margin = new Thickness(0, 0, 15, 0);
+            lblName.Margin = new Thickness(0, 0, 15, 0);
+
+            btnStart.VerticalAlignment = VerticalAlignment.Center;
+            btnEnd.VerticalAlignment = VerticalAlignment.Center;
+            progressBoxOuter.VerticalAlignment = VerticalAlignment.Center;
+            statusContainer.VerticalAlignment = VerticalAlignment.Center;
+            btnOutput.VerticalAlignment = VerticalAlignment.Center;
+
+            topBarGrid.Children.Add(btnStart);
+            topBarGrid.Children.Add(btnEnd);
+            topBarGrid.Children.Add(progressBoxOuter);
+            topBarGrid.Children.Add(statusContainer);
+            topBarGrid.Children.Add(btnOutput);
+            topBarGrid.Children.Add(btnClearAll);
+            topBarGrid.Children.Add(lblName);
+            topBarGrid.Children.Add(TxtName);
+
+            Grid.SetRow(topBarGrid, 0);
+            this.Children.Add(topBarGrid);
+
+            // ==========================================
+            // ROW 1: UPPER DIVIDER LINE
+            // ==========================================
+            var divider1 = new Border
+            {
+                Height = 4,
+                Background = textBrush,
+                Margin = new Thickness(-15, 10, -15, 10)
+            };
+            Grid.SetRow(divider1, 1);
+            this.Children.Add(divider1);
+
+            // ==========================================
+            // ROW 2: PARAMETERS SETTINGS PANEL INJECTION
+            // ==========================================
+            var settingsControl = CreateSettingsControl();
+            Grid.SetRow(settingsControl, 2);
+            this.Children.Add(settingsControl);
+
+            // ==========================================
+            // ROW 3: LOWER DIVIDER LINE
+            // ==========================================
+            var divider2 = new Border
+            {
+                Height = 4,
+                Background = textBrush,
+                Margin = new Thickness(-15, 10, -15, 15)
+            };
+            Grid.SetRow(divider2, 3);
+            this.Children.Add(divider2);
+
+            // ==========================================
+            // ROW 4: FILE COLLECTION PANEL (SCROLLABLE WRAP)
+            // ==========================================
+            FileCollection = new FileCollectionPanel(bgBrush, textBrush, globalFont, IsRotationEnabled);
+            Grid.SetRow(FileCollection, 4);
+            this.Children.Add(FileCollection);
+        }
+
+        public void SetProgress(int? percentage, bool isFail = false)
+        {
+            if (isFail)
+            {
+                ProgressFill.Width = 0;
+                PercentText.IsVisible = false;
+                BtnOpen.IsVisible = false;
+                TxtFail.IsVisible = true;
+                return;
+            }
+
+            if (percentage == null)
+            {
+                ProgressFill.Width = 0;
+                PercentText.Text = "";
+                PercentText.IsVisible = true;
+                BtnOpen.IsVisible = false;
+                TxtFail.IsVisible = false;
+                return;
+            }
+
+            int p = Math.Max(0, Math.Min(100, percentage.Value));
+            ProgressFill.Width = (p / 100.0) * MaxFillWidth;
+
+            if (p >= 100 && !CentralController.isRunning)
+            {
+                PercentText.IsVisible = false;
+                TxtFail.IsVisible = false;
+                BtnOpen.IsVisible = true;
+            }
+            else
+            {
+                PercentText.Text = $"{p}%";
+                PercentText.IsVisible = true;
+                BtnOpen.IsVisible = false;
+                TxtFail.IsVisible = false;
+            }
+        }
+
+        public void AddFiles(IEnumerable<string> paths)
+        {
+            FileCollection.AddFiles(paths, path =>
+            {
+                if (string.IsNullOrEmpty(_saveDirectory))
+                {
+                    _saveDirectory = Path.GetDirectoryName(path) ?? "";
+                }
+            });
+        }
+
+        private void HandleOpenClicked()
+        {
+            if ((DateTime.Now - _lastOpenClickTime).TotalMilliseconds < 500) return;
+            _lastOpenClickTime = DateTime.Now;
+
+            try
+            {
+                if (string.IsNullOrEmpty(_outputPath)) return;
+
+                bool isDirectory = Directory.Exists(_outputPath);
+                bool isFile = File.Exists(_outputPath);
+
+                if (!isDirectory && !isFile) return;
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    if (isDirectory)
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"\"{_outputPath}\"");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{_outputPath}\"");
+                    }
+                }
+                else
+                {
+                    string targetDir = isDirectory ? _outputPath : Path.GetDirectoryName(_outputPath)!;
+                    if (!string.IsNullOrEmpty(targetDir) && Directory.Exists(targetDir))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = targetDir,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+            }
+            catch {}
+        }
+
+        private async Task OpenFolderPickerAsync()
+        {
+            if ((DateTime.Now - _lastOutputClickTime).TotalMilliseconds < 500) return;
+            if (_isFolderPickerOpen) return;
+
+            _lastOutputClickTime = DateTime.Now;
+            _isFolderPickerOpen = true;
+
+            try
+            {
+                var folders = await parentWindow.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title = "Select Output Directory",
+                    AllowMultiple = false
+                });
+
+                if (folders != null && folders.Count > 0)
+                {
+                    _saveDirectory = folders[0].Path.LocalPath;
+                }
+            }
+            catch {}
+            finally
+            {
+                _isFolderPickerOpen = false;
+            }
+        }
+
+        private async void OnStartClicked()
+        {
+            if (CentralController.isRunning) return;
+            if (FileCollection.FileItems.Count == 0) return;
+
+            _cts = new CancellationTokenSource();
+            SetProgress(0);
+
+            string outDir = _saveDirectory ?? Directory.GetCurrentDirectory();
+            string filename = TxtName.Text ?? DefaultFileName;
+            if (string.IsNullOrWhiteSpace(filename)) filename = DefaultFileName;
+
+            try
+            {
+                var progressReporter = new Progress<double>(val =>
+                {
+                    int pct = (int)(val <= 1.0 ? val * 100 : val);
+                    SetProgress(pct);
+                });
+
+                _outputPath = await OnExecuteAsync(
+                    FileCollection.FileItems,
+                    outDir,
+                    filename,
+                    progressReporter,
+                    _cts.Token
+                );
+
+                if (!string.IsNullOrEmpty(_outputPath))
+                {
+                    SetProgress(100);
+                }
+                else
+                {
+                    SetProgress(null, isFail: true);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                SetProgress(null);
+            }
+            catch (Exception)
+            {
+                SetProgress(null, isFail: true);
+            }
+            finally
+            {
+                _cts?.Dispose();
+                _cts = null;
+            }
+        }
+    }
+
+    // =========================================================================
     // REUSABLE PANEL: DRAGGABLE / DELETABLE WRAP PANEL WITH ROTATION TOGGLE
     // =========================================================================
     public class FileCollectionPanel : Border
@@ -1449,7 +1836,6 @@ namespace convix
         private readonly FontFamily _globalFont;
         private readonly bool _isRotationEnabled;
 
-        // Visual layout tracking states for drag-drop
         private FileItem? _draggedItem;
         private Point _dragStartPoint;
         private Point _dragStartOffset;
@@ -1513,7 +1899,6 @@ namespace convix
             }
         }
 
-        // Helper logic to calculate visual flow arrangement in WrapPanel
         private bool IsFlowBefore(Point pt1, Point pt2, double rowHeight)
         {
             double yDiff = pt1.Y - pt2.Y;
@@ -1876,6 +2261,15 @@ namespace convix
             if (name == "FitKeepRatio") return "Fit (Keep Ratio)";
             if (name == "StretchToFill") return "Stretch to Fill";
             if (name == "ActualSize") return "Actual Size";
+
+            if (name.Equals("Png", StringComparison.OrdinalIgnoreCase)) return "PNG";
+            if (name.Equals("Jpeg", StringComparison.OrdinalIgnoreCase)) return "JPEG";
+            if (name.Equals("Bmp", StringComparison.OrdinalIgnoreCase)) return "BMP";
+            if (name.Equals("Tiff", StringComparison.OrdinalIgnoreCase)) return "TIFF";
+            if (name.Equals("Tif", StringComparison.OrdinalIgnoreCase)) return "TIF";
+            if (name.Equals("Webp", StringComparison.OrdinalIgnoreCase)) return "WEBP";
+            if (name.Equals("Ico", StringComparison.OrdinalIgnoreCase)) return "ICO";
+
             return name;
         }
     }

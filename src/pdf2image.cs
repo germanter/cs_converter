@@ -1,5 +1,3 @@
-
-/// NEW CODE
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -25,8 +23,29 @@ namespace PdfEngine
             progress.Report((double)currentProcessed / totalFiles * 100);
         }
 
-        // Added IProgress and CancellationToken to parameters
-        public static List<string> ConvertPdfToImages(string pdfPath, string outputPath, int dpi = 200, int quality = 90, IProgress<double>? progress = null, CancellationToken cancellationToken = default)
+        // Sanitizes input filename, falling back to "page" on failure
+        private static string SanitizeFileName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return "page";
+            }
+
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            string cleaned = string.Concat(name.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).Trim();
+
+            return string.IsNullOrWhiteSpace(cleaned) ? "page" : cleaned;
+        }
+
+        // Added filename parameter to ConvertPdfToImages
+        public static List<string> ConvertPdfToImages(
+            string pdfPath, 
+            string outputPath, 
+            string? filename, 
+            int dpi = 200, 
+            int quality = 100, 
+            IProgress<double>? progress = null, 
+            CancellationToken cancellationToken = default)
         {
             if (!File.Exists(pdfPath))
                 throw new FileNotFoundException($"PDF not found: {pdfPath}");
@@ -41,6 +60,9 @@ namespace PdfEngine
 
             var savedFilePaths = new ConcurrentBag<string>();
             int processedFiles = 0;
+
+            // Sanitize the filename prefix, fallback to "page"
+            string targetBaseName = SanitizeFileName(filename);
 
             try
             {
@@ -114,8 +136,8 @@ namespace PdfEngine
 
                         string paddedIndex = (i + 1).ToString().PadLeft(padLength, '0');
 
-                        // SAVE AS .JPG
-                        string fileName = Path.Combine(safeOutputDir, $"page_{paddedIndex}.jpg");
+                        // SAVE AS .JPG using the sanitized target base name
+                        string fileName = Path.Combine(safeOutputDir, $"{targetBaseName}_{paddedIndex}.jpg");
                         pageImage.Write(fileName);
 
                         savedFilePaths.Add(fileName);

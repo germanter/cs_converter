@@ -132,10 +132,11 @@ namespace CentralGateway
             }
         }
 
-        public static async Task<string> ImageConverterCallerAsync(
+public static async Task<string> ImageConverterCallerAsync(
             string[] sourceImages,
             string targetFormat,
             string outputPath,
+            string? filename, // Added the filename parameter
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
@@ -161,6 +162,7 @@ namespace CentralGateway
                         sourceImages,
                         targetFormat,
                         outputPath,
+                        filename, // Passed the filename parameter to the engine
                         progress,
                         cancellationToken
                     );
@@ -258,10 +260,10 @@ namespace CentralGateway
             }
         }
 
-        public static async Task<string> Pdf2ImageCallerAsync(
+    public static async Task<string> Pdf2ImageCallerAsync(
             string pdfPath,
             string outputPath,
-            int dpi,
+            string? filename, // Added the filename parameter
             int quality,
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
@@ -287,7 +289,8 @@ namespace CentralGateway
                     var result = await Task.Run(() => PdfToImageConverter.ConvertPdfToImages(
                         pdfPath: pdfPath,
                         outputPath: outputPath,
-                        dpi: dpi,
+                        filename: filename, // Passed to the engine
+                        dpi: 200,
                         quality: quality,
                         progress: progress,
                         cancellationToken: cancellationToken

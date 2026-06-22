@@ -483,7 +483,24 @@ public static class ImageToPdfEngine
         if (!Directory.Exists(directory))
             Directory.CreateDirectory(directory);
 
-        string baseName = Path.GetFileNameWithoutExtension(filename);
+        string baseName;
+        if (string.IsNullOrWhiteSpace(filename))
+        {
+            baseName = "document";
+        }
+        else
+        {
+            // Isolate the filename without extension first
+            string rawName = Path.GetFileNameWithoutExtension(filename);
+
+            // Strip any invalid filename characters
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            string cleaned = string.Concat(rawName.Split(invalidChars, StringSplitOptions.RemoveEmptyEntries)).Trim();
+
+            // Default to "document" if the cleanup left us with nothing
+            baseName = string.IsNullOrWhiteSpace(cleaned) ? "document" : cleaned;
+        }
+
         string extension = ".pdf";
         string fullPath = Path.Combine(directory, baseName + extension);
 
