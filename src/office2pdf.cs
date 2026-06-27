@@ -1,30 +1,24 @@
 
-/// new code
-
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using DesktopEngine.Sys; // Contains CommandGateway
-using PdfUtilities;      // Contains PdfMerger
+using PdfUtilities; // Contains PdfMerger
 
 namespace Orchestration
 {
     public static class OfficeBatchToPdfMerger
     {
-        /// <summary>
-        /// Orchestrates the batch conversion of strictly homogeneous DOCX or PPTX files to PDF.
-        /// Zero tolerance for mixed file types. Aggressively handles temp sandboxing and cleanup.
-        /// ZERO COMPROMISE PROTOCOL: If any single file fails or cancellation is requested, everything is nuked.
-        /// </summary>
+
         public static string[] ConvertAndMerge(
-            string[] inputPaths, 
-            string newFileName, 
-            string filePathToSave, 
-            string libreOfficeExePath, 
-            string mode, 
-            int merge, 
-            IProgress<double>? progress = null, 
+            string[] inputPaths,
+            string newFileName,
+            string filePathToSave,
+            string libreOfficeExePath,
+            string mode,
+            int merge,
+            IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
             // 1. Validate basic inputs
@@ -43,7 +37,7 @@ namespace Orchestration
             foreach (string path in inputPaths)
             {
                 string ext = Path.GetExtension(path);
-                
+
                 if (!string.Equals(ext, expectedExtension, StringComparison.OrdinalIgnoreCase))
                 {
                     // FULL ABORT
@@ -83,7 +77,8 @@ namespace Orchestration
                         filepath: docPath,
                         newFilename: internalTempName,
                         folderPath: masterSandboxDir,
-                        mode: mode 
+                        mode: mode,
+                        cancellationToken: cancellationToken // Pass the cancellation token down
                     );
 
                     tempPdfPaths.Add(convertedPdfPath);
@@ -101,8 +96,8 @@ namespace Orchestration
                 {
                     // Stream the successfully converted sandbox PDFs into one
                     string finalMergedPdf = PdfMerger.Merge(
-                        pdfPaths: tempPdfPaths.ToArray(), 
-                        filePathToSave: filePathToSave, 
+                        pdfPaths: tempPdfPaths.ToArray(),
+                        filePathToSave: filePathToSave,
                         newFileName: newFileName
                     );
 
@@ -127,7 +122,7 @@ namespace Orchestration
 
                         // Atomic move from Sandbox to Target directory
                         File.Move(tempSandboxFile, safeFinalPath);
-                        
+
                         finalGeneratedFiles.Add(safeFinalPath); // Track it for the Nuke Protocol
                         finalIndividualPdfs.Add(safeFinalPath);
                     }
@@ -164,12 +159,12 @@ namespace Orchestration
                 // 6. THE NUKE: Unconditional Sandbox Cleanup
                 if (Directory.Exists(masterSandboxDir))
                 {
-                    try 
-                    { 
-                        Directory.Delete(masterSandboxDir, true); 
-                    } 
-                    catch 
-                    { 
+                    try
+                    {
+                        Directory.Delete(masterSandboxDir, true);
+                    }
+                    catch
+                    {
                         // Suppress I/O teardown exceptions
                     }
                 }
@@ -179,12 +174,12 @@ namespace Orchestration
         /// <summary>
         /// Safely reports progress using Interlocked for thread safety.
         /// </summary>
-        private static void ReportProgress(ref int processedFiles, int totalFiles, IProgress<double>? progress) 
-        { 
-            if (progress == null) return; 
-            
+        private static void ReportProgress(ref int processedFiles, int totalFiles, IProgress<double>? progress)
+        {
+            if (progress == null) return;
+
             int currentProcessed = Interlocked.Increment(ref processedFiles);
-            progress.Report((double)currentProcessed / totalFiles * 100); 
+            progress.Report((double)currentProcessed / totalFiles * 100);
         }
 
         /// <summary>

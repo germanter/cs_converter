@@ -1,4 +1,4 @@
-// version 2 deadlock stop 
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -9,16 +9,18 @@ namespace DesktopEngine.Sys
 {
     public static class CommandGateway
     {
-        /// <summary>
-        /// Agnostic, single-threaded execution engine. 0% async. 0% hardcoded paths.
-        /// Actively monitors process vitals and asynchronously drains streams to eliminate deadlocks.
-        /// </summary>
-        public static string Convert(string libreOfficeExePath, string filepath, string newFilename, string folderPath, string mode)
+        public static string Convert(
+            string libreOfficeExePath,
+            string filepath,
+            string newFilename,
+            string folderPath,
+            string mode,
+            CancellationToken cancellationToken = default)
         {
-            // =================================================================
-            // ENGINE CONFIGURATION ZONE
-            // =================================================================
-            int maxCpuFlatlineSeconds = 20; // 12s is the gold standard for heavy files vs ghost locks.
+            // Pre-flight cancellation check
+            cancellationToken.ThrowIfCancellationRequested();
+
+            int maxCpuFlatlineSeconds = 25; 
             // =================================================================
 
             // 1. Guardrails: Verify structural dependencies before drawing power
@@ -64,13 +66,16 @@ namespace DesktopEngine.Sys
 
             try
             {
+                // Cancellation check prior to launching the process
+                cancellationToken.ThrowIfCancellationRequested();
+
                 // 5. Build the silent, headless execution profile
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = libreOfficeExePath,
                     Arguments = $"--headless --invisible --norestore --nofirststartwizard --convert-to {convertArgs} --outdir \"{sandboxDir}\" \"{filepath}\"",
-                    UseShellExecute = false, 
-                    CreateNoWindow = true,   
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true // This requires active draining to prevent pipe deadlocks
                 };
@@ -82,7 +87,7 @@ namespace DesktopEngine.Sys
 
                     // Asynchronously drain the Error and Output buffers to prevent the OS from halting LibreOffice
                     StringBuilder errorOutput = new StringBuilder();
-                    process.ErrorDataReceived += (sender, args) => 
+                    process.ErrorDataReceived += (sender, args) =>
                     {
                         if (args.Data != null) errorOutput.AppendLine(args.Data);
                     };
@@ -102,6 +107,13 @@ namespace DesktopEngine.Sys
                     // Interrogate the operating system kernel once every second
                     while (!process.HasExited)
                     {
+                        // Check if cancellation was flagged at the start of loop iteration
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            try { process.Kill(); } catch { }
+                            cancellationToken.ThrowIfCancellationRequested();
+                        }
+
                         try
                         {
                             process.Refresh(); // Force Windows to refresh the process resource tree
@@ -132,8 +144,24 @@ namespace DesktopEngine.Sys
                             throw new TimeoutException($"Engine Execution Aborted: Process flatlined at 0% CPU usage for {maxCpuFlatlineSeconds} continuous seconds. Target asset is highly likely password-protected or heavily corrupted.");
                         }
 
-                        Thread.Sleep(1000); // Block the execution thread for 1000ms before checking the heartbeat pulse again
+                        // Wait mechanism: Use the token's WaitHandle instead of Thread.Sleep.
+                        // This blocks for up to 1000ms but returns early (instantly) if the token is canceled.
+                        if (cancellationToken.CanBeCanceled)
+                        {
+                            if (cancellationToken.WaitHandle.WaitOne(1000))
+                            {
+                                try { process.Kill(); } catch { }
+                                cancellationToken.ThrowIfCancellationRequested();
+                            }
+                        }
+                        else
+                        {
+                            Thread.Sleep(1000); // Fall back to sleeping if token cannot be canceled
+                        }
                     }
+
+                    // Post-execution cancellation check
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     // Process exited on its own, now double check its final reporting state
                     if (process.ExitCode != 0)
@@ -161,6 +189,45 @@ namespace DesktopEngine.Sys
                 {
                     try { Directory.Delete(sandboxDir, true); } catch { /* Prevent locking contentions from breaking the finally block */ }
                 }
+
+                // 10. Force-kill any lingering background processes of LibreOffice
+                KillLibreOfficeLeftovers();
+            }
+        }
+
+        /// <summary>
+        /// Runs taskkill silently to clear out any orphan processes (soffice.exe/soffice.bin) on Windows platforms.
+        /// </summary>
+        private static void KillLibreOfficeLeftovers()
+        {
+            try
+            {
+                // Taskkill is a Windows-specific utility
+                if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                {
+                    string[] targetProcesses = { "soffice.exe", "soffice.bin" };
+
+                    foreach (string processName in targetProcesses)
+                    {
+                        using (var taskkill = new Process())
+                        {
+                            taskkill.StartInfo = new ProcessStartInfo
+                            {
+                                FileName = "taskkill",
+                                Arguments = $"/f /t /im {processName}",
+                                CreateNoWindow = true,
+                                UseShellExecute = false
+                            };
+
+                            taskkill.Start();
+                            taskkill.WaitForExit(2000); // Wait up to 2 seconds for safety
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Suppress OS exceptions (such as Access Denied or missing taskkill file) to keep operations running
             }
         }
     }

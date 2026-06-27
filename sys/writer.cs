@@ -28,6 +28,160 @@ namespace WriterHead
     ""text"": ""#FFFFFF""
 }";
 
+        // Log limitation variables
+        public static readonly int limitOnLog = 100;
+        public static readonly int limitOffLog = 1;
+
+        // System Level Initialization Return Object
+        public class InitResult
+        {
+            public bool status { get; set; }
+            public string content { get; set; } = "{}";
+        }
+
+        /// <summary>
+        /// Synchronous Core Initializer. Checks file existence, validity, and the integrity of the sys config.
+        /// </summary>
+        public static InitResult Initializer()
+        {
+            // 1. Guardrail: Verify if file exists in the directory. DO NOT auto-create.
+            if (string.IsNullOrEmpty(Vars.dataDIR) || !File.Exists(Vars.dataDIR))
+            {
+                return new InitResult { status = false, content = "{}" };
+            }
+
+            try
+            {
+                string rawJson;
+                try
+                {
+                    rawJson = File.ReadAllText(Vars.dataDIR);
+                }
+                catch
+                {
+                    // Cannot open the file (e.g., lock issues or permission issues)
+                    return new InitResult { status = false, content = "{}" };
+                }
+
+                bool isCorrupt = false;
+                JsonNode? root = null;
+                JsonObject? sys = null;
+
+                if (string.IsNullOrWhiteSpace(rawJson))
+                {
+                    isCorrupt = true;
+                }
+                else
+                {
+                    try
+                    {
+                        root = JsonNode.Parse(rawJson);
+                        if (root == null)
+                        {
+                            isCorrupt = true;
+                        }
+                        else
+                        {
+                            sys = root["sys"] as JsonObject;
+                            var logs = root["logs"] as JsonArray;
+
+                            if (sys == null || logs == null)
+                            {
+                                isCorrupt = true;
+                            }
+                            else
+                            {
+                                // Validate sys keys: openLog, bg, text
+                                if (!sys.TryGetPropertyValue("openLog", out var openLogNode) || openLogNode == null ||
+                                    (openLogNode.GetValueKind() != JsonValueKind.True && openLogNode.GetValueKind() != JsonValueKind.False))
+                                {
+                                    isCorrupt = true;
+                                }
+                                else if (!sys.TryGetPropertyValue("bg", out var bgNode) || bgNode == null ||
+                                         bgNode.GetValueKind() != JsonValueKind.String || !IsValidHexColor(bgNode.ToString()))
+                                {
+                                    isCorrupt = true;
+                                }
+                                else if (!sys.TryGetPropertyValue("text", out var textNode) || textNode == null ||
+                                         textNode.GetValueKind() != JsonValueKind.String || !IsValidHexColor(textNode.ToString()))
+                                {
+                                    isCorrupt = true;
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        isCorrupt = true;
+                    }
+                }
+
+                if (isCorrupt)
+                {
+                    // Nuke the existing corrupted file and write default JSON
+                    File.WriteAllText(Vars.dataDIR, DefaultFullJson);
+                    
+                    // Synchronously sync the in-memory snapshot
+                    Vars.jsonSnapshot = ReadProperJsonSync(Vars.dataDIR);
+
+                    var freshRoot = JsonNode.Parse(DefaultFullJson);
+                    string freshSys = freshRoot?["sys"]?.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) ?? "{}";
+
+                    return new InitResult { status = true, content = freshSys };
+                }
+                else
+                {
+                    // Sync the snapshot with current verified file content
+                    Vars.jsonSnapshot = ReadProperJsonSync(Vars.dataDIR);
+
+                    string sysContent = sys!.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                    return new InitResult { status = true, content = sysContent };
+                }
+            }
+            catch
+            {
+                // Unrecoverable parsing/file system crash fallback
+                return new InitResult { status = false, content = "{}" };
+            }
+        }
+
+        private static bool IsValidHexColor(string? color)
+        {
+            if (string.IsNullOrWhiteSpace(color)) return false;
+            // Matches standard hex color strings (e.g., #FFF, #1E1E1E, #FF1E1E1E)
+            return System.Text.RegularExpressions.Regex.IsMatch(color, @"^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8}|[0-9a-fA-F]{3})$");
+        }
+
+        private static string ReadProperJsonSync(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return "";
+
+                string raw = File.ReadAllText(path);
+                if (string.IsNullOrWhiteSpace(raw)) return "";
+
+                JsonNode? root = JsonNode.Parse(raw);
+                if (root == null) return "";
+
+                if (!(root["sys"] is JsonObject sys)) return "";
+                if (!(root["logs"] is JsonArray logs)) return "";
+
+                var cleanRoot = new JsonObject
+                {
+                    ["sys"] = sys.DeepClone(),
+                    ["logs"] = logs.DeepClone()
+                };
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                return cleanRoot.ToJsonString(options);
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
         // 5 Operational Modes
         private enum WriteMode
         {
@@ -55,10 +209,6 @@ namespace WriterHead
         private static CancellationTokenSource _cts = new CancellationTokenSource();
         private static readonly object _lock = new object();
 
-        /// <summary>
-        /// MODE 1: ROOT LEVEL PRIORITY. Wipes data.json entirely and defaults it.
-        /// </summary>
-        
         private static async Task<string> ReadProperJsonAsync(string path, CancellationToken token)
         {
             try
@@ -94,7 +244,9 @@ namespace WriterHead
             }
         }
 
-
+        /// <summary>
+        /// MODE 1: ROOT LEVEL PRIORITY. Wipes data.json entirely and defaults it.
+        /// </summary>
         public static Task<string> Mode1_NukeDataAsync()
         {
             var job = new Job
@@ -266,7 +418,33 @@ namespace WriterHead
                     // Execute Modes
                     if (currentJob.Mode == WriteMode.Mode2_Log)
                     {
+                        // Insert new log onto the top (index 0) of the array
                         logs.Insert(0, JsonSerializer.SerializeToNode(currentJob.LogEntry));
+
+                        // Read the 'openLog' flag inside the 'sys' object to determine limit
+                        bool openLogValue = true; // default fallback if unreadable
+                        if (sys.TryGetPropertyValue("openLog", out var openLogNode) && openLogNode != null)
+                        {
+                            var kind = openLogNode.GetValueKind();
+                            if (kind == JsonValueKind.True) openLogValue = true;
+                            else if (kind == JsonValueKind.False) openLogValue = false;
+                            else if (kind == JsonValueKind.String)
+                            {
+                                if (bool.TryParse(openLogNode.ToString(), out bool parsedBool))
+                                {
+                                    openLogValue = parsedBool;
+                                }
+                            }
+                        }
+
+                        // Select the appropriate limit based on 'openLog'
+                        int limit = openLogValue ? limitOnLog : limitOffLog;
+
+                        // Delete from the bottom (oldest) of the array until we hit the limit
+                        while (logs.Count > limit)
+                        {
+                            logs.RemoveAt(logs.Count - 1);
+                        }
                     }
                     else if (currentJob.Mode == WriteMode.Mode3_Settings)
                     {
@@ -320,19 +498,14 @@ namespace WriterHead
                 }
                 catch (Exception)
                 {
-                    // =========================================================
-                    // EXTREME PROTOCOL LEVEL IMPORTANCE: CORRUPTION FALLBACK
-                    // Any error above (empty, parse fail, schema break) lands here.
-                    // DO NOT EXECUTE THE GIVEN ACTUAL TASK. JUST NUKE IT AND MOVE AWAY.
-                    // =========================================================
                     try
                     {
-                    await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
+                        await File.WriteAllTextAsync(Vars.dataDIR, DefaultFullJson, token);
                         
-                    // NEW: Even in a crash, we read the fresh defaulted file back from disk
-                     Vars.jsonSnapshot = await ReadProperJsonAsync(Vars.dataDIR, token);
+                        // NEW: Even in a crash, we read the fresh defaulted file back from disk
+                        Vars.jsonSnapshot = await ReadProperJsonAsync(Vars.dataDIR, token);
                     }
-                    catch { } // No superhero shit. If we can't write, silently walk away.
+                    catch { } // No superhero actions. If we can't write, silently walk away.
 
                     currentJob.Tcs.TrySetResult("success");
                 }
