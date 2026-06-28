@@ -1,20 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <OutputType>WinExe</OutputType> <!-- Suppresses the background console terminal -->
-    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType> <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);NU1605;NU1510</NoWarn>
 
-    <!-- True Single-File Self-Contained Settings -->
     <ApplicationIcon>s_assets/logo.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <DebugType>embedded</DebugType>
+    
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +22,6 @@
 
   <ItemGroup>
     <AvaloniaResource Include="s_assets\**" />
-
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.13" />
     <PackageReference Include="Avalonia" Version="11.0.13" />
     <PackageReference Include="Avalonia.Desktop" Version="11.0.13" />
@@ -32,5 +30,4 @@
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.14.0" />
     <PackageReference Include="PdfSharp" Version="6.1.1" />
   </ItemGroup>
-
 </Project>
