@@ -8,6 +8,7 @@
     <NoWarn>$(NoWarn);NU1605;NU1510</NoWarn>
 
     <!-- True Single-File Self-Contained Settings -->
+    <ApplicationIcon>s_assets/logo.ico</ApplicationIcon>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

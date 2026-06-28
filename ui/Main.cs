@@ -11,7 +11,7 @@ using Avalonia.Media;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
-
+using Avalonia.Platform;
 // Namespace imports to safely propagate operational parameters across frames
 using ImageToPdfApp;
 using PdfEngine;
@@ -150,6 +150,12 @@ namespace convix
             this.Width = 1100;
             this.Height = 650;
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
+                try
+                {
+                    this.Icon = new WindowIcon(AssetLoader.Open(new Uri($"avares://{assemblyName}/s_assets/logo.ico")));
+                }
+                catch { /* Fallback if resource is missing or incorrectly named */ }
 
             BuildUI();
 
