@@ -1,4 +1,5 @@
-// WRAPPED 2
+
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -19,11 +20,59 @@ namespace CentralGateway
     public static class CentralController
     {
         private static int _isRunning = 0;
+        private static int _nuke = 0; // 0 = false, 1 = true
+        private static CancellationTokenSource _nukeCts = new CancellationTokenSource();
+        private static readonly object _nukeLock = new object();
 
         public static bool isRunning
         {
             get => _isRunning == 1;
             set => Interlocked.Exchange(ref _isRunning, value ? 1 : 0);
+        }
+
+        public static bool nuke
+        {
+            get => Volatile.Read(ref _nuke) == 1;
+            set
+            {
+                lock (_nukeLock)
+                {
+                    bool prevValue = _nuke == 1;
+                    if (prevValue == value) return;
+
+                    _nuke = value ? 1 : 0;
+
+                    if (value)
+                    {
+                        _nukeCts.Cancel();
+                    }
+                    else
+                    {
+                        // Safely dispose the cancelled CTS and instantiate a new one for future jobs
+                        var oldCts = _nukeCts;
+                        _nukeCts = new CancellationTokenSource();
+                        try
+                        {
+                            oldCts.Dispose();
+                        }
+                        catch
+                        {
+                            // Suppress potential disposal issues
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Combines the external CancellationToken with our internal nuke cancellation source.
+        /// </summary>
+        private static CancellationTokenSource CreateLinkedCts(CancellationToken externalToken)
+        {
+            lock (_nukeLock)
+            {
+                return CancellationTokenSource.CreateLinkedTokenSource(externalToken, _nukeCts.Token);
+            }
         }
 
         /// <summary>
@@ -79,8 +128,10 @@ namespace CentralGateway
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+            if (nuke || Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
                 return string.Empty;
+
+            using var linkedCts = CreateLinkedCts(cancellationToken);
 
             try
             {
@@ -109,8 +160,8 @@ namespace CentralGateway
                         imageFit: imageFit,
                         quality: quality,
                         progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                        cancellationToken: linkedCts.Token
+                    ), linkedCts.Token);
 
                     Logger.Log(taskType, result, "success"); // result is a single string here
                     return result;
@@ -118,7 +169,7 @@ namespace CentralGateway
                 catch (OperationCanceledException)
                 {
                     Logger.Log(taskType, "", "fail");
-                    throw; // Bubble up intentional user cancellations unchanged natively
+                    throw; // Bubble up intentional user/nuke cancellations unchanged natively
                 }
                 catch (Exception)
                 {
@@ -132,7 +183,7 @@ namespace CentralGateway
             }
         }
 
-public static async Task<string> ImageConverterCallerAsync(
+        public static async Task<string> ImageConverterCallerAsync(
             string[] sourceImages,
             string targetFormat,
             string outputPath,
@@ -140,8 +191,10 @@ public static async Task<string> ImageConverterCallerAsync(
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+            if (nuke || Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
                 return string.Empty;
+
+            using var linkedCts = CreateLinkedCts(cancellationToken);
 
             try
             {
@@ -164,7 +217,7 @@ public static async Task<string> ImageConverterCallerAsync(
                         outputPath,
                         filename, // Passed the filename parameter to the engine
                         progress,
-                        cancellationToken
+                        linkedCts.Token
                     );
 
                     string logPath = GetLogPath(result);
@@ -197,8 +250,10 @@ public static async Task<string> ImageConverterCallerAsync(
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+            if (nuke || Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
                 return string.Empty;
+
+            using var linkedCts = CreateLinkedCts(cancellationToken);
 
             try
             {
@@ -236,8 +291,8 @@ public static async Task<string> ImageConverterCallerAsync(
                         mode: mode,
                         merge: merge,
                         progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                        cancellationToken: linkedCts.Token
+                    ), linkedCts.Token);
 
                     string logPath = GetLogPath(result);
                     Logger.Log(taskType, logPath, "success");
@@ -260,7 +315,7 @@ public static async Task<string> ImageConverterCallerAsync(
             }
         }
 
-    public static async Task<string> Pdf2ImageCallerAsync(
+        public static async Task<string> Pdf2ImageCallerAsync(
             string pdfPath,
             string outputPath,
             string? filename, // Added the filename parameter
@@ -268,8 +323,10 @@ public static async Task<string> ImageConverterCallerAsync(
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+            if (nuke || Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
                 return string.Empty;
+
+            using var linkedCts = CreateLinkedCts(cancellationToken);
 
             try
             {
@@ -293,8 +350,8 @@ public static async Task<string> ImageConverterCallerAsync(
                         dpi: 200,
                         quality: quality,
                         progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                        cancellationToken: linkedCts.Token
+                    ), linkedCts.Token);
 
                     string logPath = GetLogPath(result);
                     Logger.Log(taskType, logPath, "success");
@@ -324,8 +381,10 @@ public static async Task<string> ImageConverterCallerAsync(
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
-            if (Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
+            if (nuke || Interlocked.CompareExchange(ref _isRunning, 1, 0) != 0) 
                 return string.Empty;
+
+            using var linkedCts = CreateLinkedCts(cancellationToken);
 
             try
             {
@@ -347,8 +406,8 @@ public static async Task<string> ImageConverterCallerAsync(
                         filePathToSave: filePathToSave,
                         newFileName: newFileName,
                         progress: progress,
-                        cancellationToken: cancellationToken
-                    ), cancellationToken);
+                        cancellationToken: linkedCts.Token
+                    ), linkedCts.Token);
 
                     Logger.Log(taskType, result, "success"); // single string returned natively
                     return result;

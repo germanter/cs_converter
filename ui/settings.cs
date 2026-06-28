@@ -1,3 +1,4 @@
+
 using System;
 using System.Threading.Tasks;
 using Avalonia;
@@ -109,6 +110,18 @@ namespace convix
             optionsStack.Children.Add(CreateOptionButton(_txtLogs, async () => await ToggleLogs()));
             optionsStack.Children.Add(CreateOptionButton(txtRestore, async () => await RestoreDefaults()));
 
+            // ==========================================
+            // NEW: DESTROY CORES OPTION
+            // ==========================================
+            var txtDestroy = new TextBlock { Text = "destroy convix files", FontSize = 30, FontFamily = font, Foreground = _textBrush, VerticalAlignment = VerticalAlignment.Center };
+            var descDestroy = new TextBlock { Text = "this will destroy all app files created by convix", FontSize = 16, FontFamily = font, Foreground = _textBrush, Margin = new Thickness(0, 5, 0, 0), HorizontalAlignment = HorizontalAlignment.Center };
+            
+            var destroyStack = new StackPanel { Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 0) };
+            var btnDestroy = CreateOptionButton(txtDestroy, async () => await ExecuteDestruction(txtDestroy));
+            destroyStack.Children.Add(btnDestroy);
+            destroyStack.Children.Add(descDestroy);
+            optionsStack.Children.Add(destroyStack);
+
             Grid.SetRow(headerGrid, 0);
             Grid.SetRow(optionsStack, 1);
             _mainView.Children.Add(headerGrid);
@@ -196,6 +209,9 @@ namespace convix
             paletteAndHueStack.Children.Add(vBorder);
             pickerStack.Children.Add(paletteAndHueStack);
 
+            rootGrid.Children.Add(_mainView);        
+            rootGrid.Children.Add(_colorPickerModal); 
+
             // --- RGB SLIDERS (For exact math control) ---
             var slidersGrid = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), ColumnDefinitions = new ColumnDefinitions("Auto,*"), Width = 340 };
 
@@ -229,8 +245,6 @@ namespace convix
             modalPanel.Child = pickerStack;
             _colorPickerModal.Children.Add(modalPanel);
 
-            rootGrid.Children.Add(_mainView);        
-            rootGrid.Children.Add(_colorPickerModal); 
             this.Child = rootGrid;
         }
 
@@ -292,6 +306,39 @@ namespace convix
                 Vars.NotifyThemeChanged();
                 RefreshUI();
             } catch { } finally { await Task.Delay(500); _isCooldown = false; }
+        }
+
+        // ==========================================
+        // DESTRUCTION EXECUTION ENGINE
+        // ==========================================
+        private async Task ExecuteDestruction(TextBlock txtDestroy)
+        {
+            if (_isCooldown) return;
+            _isCooldown = true;
+
+            // Globally disable interaction for this entire settings control hierarchy
+            // UI thread remains fluid/unfrozen, but ignore pointer inputs on close and other buttons
+            this.IsHitTestVisible = false;
+            txtDestroy.Text = "destroying...";
+
+            try
+            {
+                bool success = await Destruction.Destructor.Destroy();
+                if (!success)
+                {
+                    txtDestroy.Text = "fail";
+                }
+            }
+            catch
+            {
+                txtDestroy.Text = "fail";
+            }
+            finally
+            {
+                // Restore interaction state if destruction is aborted or unsuccessful
+                this.IsHitTestVisible = true;
+                _isCooldown = false;
+            }
         }
 
         // ==========================================
