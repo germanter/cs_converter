@@ -320,6 +320,7 @@ namespace CentralGateway
             string outputPath,
             string? filename, // Added the filename parameter
             int quality,
+            int dpi, // Added dpi parameter
             IProgress<double>? progress = null,
             CancellationToken cancellationToken = default)
         {
@@ -341,13 +342,16 @@ namespace CentralGateway
                     throw new Exception(errNoPdf);
                 }
 
+                // Check if the value is 200 or 300, otherwise fallback to 200
+                int validatedDpi = (dpi == 200 || dpi == 300) ? dpi : 200;
+
                 try
                 {
                     var result = await Task.Run(() => PdfToImageConverter.ConvertPdfToImages(
                         pdfPath: pdfPath,
                         outputPath: outputPath,
                         filename: filename, // Passed to the engine
-                        dpi: 200,
+                        dpi: validatedDpi, // Passed the validated DPI
                         quality: quality,
                         progress: progress,
                         cancellationToken: linkedCts.Token

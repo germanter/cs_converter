@@ -19,9 +19,16 @@ using CentralGateway;
 
 namespace convix
 {
+    public enum DpiSelection
+    {
+        Dpi200 = 200,
+        Dpi300 = 300
+    }
+
     public class Pdf2ImageUI : CtgToolBase
     {
         private CustomSlider _qualitySlider = null!;
+        private TwoColorDropdown<DpiSelection> _dpiDropdown = null!;
 
         public override string DefaultFileName => "page";
         protected override bool IsRotationEnabled => false; // strictly disabled rotation panel on pdf2image categories
@@ -41,8 +48,18 @@ namespace convix
             settingsGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             settingsGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
 
-            // Left stack serves as an empty aligner to preserve uniform settings row metrics
+            // Left stack holds the DPI selection dropdown
             var leftStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 25 };
+
+            _dpiDropdown = new TwoColorDropdown<DpiSelection>(
+                "DPI",
+                DpiSelection.Dpi200,
+                bgBrush,
+                textBrush,
+                globalFont
+            );
+            leftStack.Children.Add(_dpiDropdown);
+
             Grid.SetColumn(leftStack, 0);
             settingsGrid.Children.Add(leftStack);
 
@@ -102,6 +119,7 @@ namespace convix
             if (targetFile == null) return string.Empty;
 
             int qualSel = (int)_qualitySlider.Value;
+            int dpiSel = (int)_dpiDropdown.SelectedValue;
 
             // Invoke CentralController Pdf2ImageCallerAsync
             string logPath = await CentralController.Pdf2ImageCallerAsync(
@@ -109,6 +127,7 @@ namespace convix
                 outputPath: saveDirectory,
                 filename: filename,
                 quality: qualSel,
+                dpi: dpiSel,
                 progress: progress,
                 cancellationToken: cancellationToken
             );
